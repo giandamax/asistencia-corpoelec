@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>CORPOELEC Digital Attendance</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <!-- QR Code Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- HTML5 QR Code Scanner -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#b5000b",
+                        "primary-container": "#e30613",
+                        "on-surface": "#191c1d",
+                        "on-surface-variant": "#5e3f3b",
+                        surface: "#f8f9fa",
+                        "surface-container-low": "#f3f4f5",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#e1e3e4",
+                        "surface-dim": "#d9dadb",
+                        tertiary: "#475c66",
+                        "secondary-container": "#9fc2fe",
+                        "on-secondary-container": "#294f83"
+                    },
+                    fontFamily: {
+                        headline: ["Public Sans"],
+                        body: ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+        .headline-font { font-family: 'Public Sans', sans-serif; }
+        
+        /* App.js Logic Styles */
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        #alert-container { position: fixed; top: 80px; right: 20px; z-index: 1000; }
+        .alert { padding: 15px 20px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); color: white; font-weight: bold; }
+        .alert.success { background-color: #2e7d32; }
+        .alert.error { background-color: #c62828; }
+
+        @media print {
+            body { background-color: white; }
+            header, aside, .no-print, #alert-container { display: none !important; }
+            main { margin-left: 0 !important; padding: 0 !important; }
+            .print-header { display: block !important; text-align: center; margin-bottom: 30px; }
+            .print-header h2 { color: #b5000b; font-size: 28px; font-weight: 900; }
+            /* Force exact colors for printing */
+            .print-bg-primary { background-color: #b5000b !important; color: white !important; -webkit-print-color-adjust: exact; }
+        }
+        .print-header { display: none; }
+    </style>
+</head>
+<body class="text-on-background">
+    <!-- TopNavBar -->
+    <header class="fixed top-0 z-40 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_20px_40px_rgba(181,0,11,0.04)] flex justify-between items-center px-8 py-4">
+        <div class="flex items-center gap-4">
+            <span class="text-xl font-black text-red-600 dark:text-red-500 tracking-tighter headline-font">CORPOELEC Digital Attendance</span>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="hidden md:flex gap-8 items-center">
+                <a class="text-red-600 dark:text-red-400 font-bold border-b-2 border-red-600 font-['Public_Sans'] uppercase tracking-widest text-xs" href="#">Panel Principal</a>
+            </div>
+            <div class="flex items-center gap-4 border-l pl-6 border-slate-200/50">
+                <button class="material-symbols-outlined text-tertiary hover:text-primary transition-colors">notifications</button>
+                <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-surface-container-highest bg-slate-200">
+                    <span class="material-symbols-outlined mt-1 text-slate-500" style="font-size: 32px;">person</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex pt-20">
+        <!-- SideNavBar -->
+        <aside class="fixed left-0 top-0 h-screen w-64 flex flex-col py-8 gap-6 bg-slate-50 dark:bg-slate-950 border-r-0 z-30 pt-24">
+            <div class="px-8 mb-8 flex flex-col gap-2">
+                <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-2">
+                    <span class="material-symbols-outlined text-white text-3xl" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                </div>
+                <h2 class="text-lg font-black text-slate-900 dark:text-white headline-font leading-tight">Attendance Management</h2>
+                <p class="text-xs font-['Public_Sans'] font-semibold text-primary uppercase tracking-wider">Electric Pulse</p>
+            </div>
+            <nav class="flex-1 flex flex-col gap-1">
+                <a class="nav-item active flex items-center gap-4 py-3 px-8 text-slate-600 hover:bg-slate-100 rounded-r-full mr-4 transition-all hover:translate-x-1 cursor-pointer" data-target="view-dashboard">
+                    <span class="material-symbols-outlined pointer-events-none">dashboard</span>
+                    <span class="font-['Public_Sans'] text-sm font-semibold pointer-events-none">Dashboard</span>
+                </a>
+                <a class="nav-item flex items-center gap-4 py-3 px-8 text-slate-600 hover:bg-slate-100 rounded-r-full mr-4 transition-all hover:translate-x-1 cursor-pointer" data-target="view-usuarios">
+                    <span class="material-symbols-outlined pointer-events-none" style="font-variation-settings: 'FILL' 1;">person_add</span>
+                    <span class="font-['Public_Sans'] text-sm font-semibold pointer-events-none">Nuevo Usuario</span>
+                </a>
+                <a class="nav-item flex items-center gap-4 py-3 px-8 text-slate-600 hover:bg-slate-100 rounded-r-full mr-4 transition-all hover:translate-x-1 cursor-pointer" data-target="view-qr">
+                    <span class="material-symbols-outlined pointer-events-none">qr_code</span>
+                    <span class="font-['Public_Sans'] text-sm font-semibold pointer-events-none">Generar QR</span>
+                </a>
+                <a class="nav-item flex items-center gap-4 py-3 px-8 text-slate-600 hover:bg-slate-100 rounded-r-full mr-4 transition-all hover:translate-x-1 cursor-pointer" data-target="view-escaner">
+                    <span class="material-symbols-outlined pointer-events-none">qr_code_scanner</span>
+                    <span class="font-['Public_Sans'] text-sm font-semibold pointer-events-none">Escáner Terminal</span>
+                </a>
+                <a class="nav-item flex items-center gap-4 py-3 px-8 text-slate-600 hover:bg-slate-100 rounded-r-full mr-4 transition-all hover:translate-x-1 cursor-pointer" data-target="view-reportes">
+                    <span class="material-symbols-outlined pointer-events-none">analytics</span>
+                    <span class="font-['Public_Sans'] text-sm font-semibold pointer-events-none">Reportes</span>
+                </a>
+            </nav>
+            <div class="px-8 mt-auto flex flex-col gap-4">
+                <button class="nav-item bg-primary-container text-white py-3 px-6 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-lg shadow-primary/20 cursor-pointer" data-target="view-escaner">
+                    <span class="material-symbols-outlined pointer-events-none">qr_code_2</span>
+                    Escanear Ahora
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="ml-64 w-full min-h-screen bg-surface px-12 py-8 pt-24">
+            <div id="alert-container"></div>
+
+            <!-- View: Dashboard -->
+            <section id="view-dashboard" class="view active">
+                <div class="flex justify-between items-end mb-12">
+                    <div class="max-w-2xl">
+                        <h1 class="text-5xl font-black text-on-surface headline-font tracking-tighter mb-4 leading-none">Attendance <span class="text-primary-container">Pulse</span> System</h1>
+                        <p class="text-on-surface-variant font-body text-lg max-w-md">Sistema integral de gestión de asistencia digital y terminal de seguridad de Corpoelec.</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 grid grid-cols-3 gap-8">
+                    <div class="bg-surface-container-highest p-8 rounded-3xl col-span-2 relative overflow-hidden group cursor-pointer nav-item" data-target="view-escaner">
+                        <div class="relative z-10 pointer-events-none">
+                            <h5 class="text-xs font-black uppercase tracking-widest text-tertiary mb-2">Terminal Activa</h5>
+                            <h3 class="text-2xl font-black text-on-surface headline-font mb-4">Iniciar Escáner de Asistencia QR</h3>
+                            <p class="text-on-surface-variant text-sm max-w-sm">Active la cámara para comenzar a registrar el personal que ingresa a las instalaciones.</p>
+                        </div>
+                        <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-primary/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+                    </div>
+                    
+                    <div class="bg-surface-container-low p-8 rounded-3xl col-span-1 cursor-pointer nav-item" data-target="view-reportes">
+                        <h5 class="text-xs font-black uppercase tracking-widest text-primary mb-6 pointer-events-none">Módulo de Reportes</h5>
+                        <div class="flex items-center gap-4 mb-4 pointer-events-none">
+                            <div class="w-2 h-10 bg-primary rounded-full"></div>
+                            <p class="text-on-surface font-bold text-lg leading-tight">Visualizar y exportar registros de asistencia.</p>
+                        </div>
+                        <button class="text-on-surface-variant text-xs font-bold flex items-center gap-2 hover:text-primary transition-colors pointer-events-none">
+                            VER REPORTES <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Usuarios -->
+            <section id="view-usuarios" class="view">
+                <div class="bg-white w-full max-w-2xl rounded-3xl shadow-sm border border-slate-100 overflow-hidden p-10 mx-auto mt-4">
+                    <div class="mb-8">
+                        <h3 class="text-3xl font-black headline-font text-on-surface leading-none">Registrar Personal</h3>
+                        <p class="text-on-surface-variant mt-2 font-medium">Agregue un nuevo empleado al sistema. Su código QR se generará automáticamente.</p>
+                    </div>
+                    <form id="form-usuario" class="space-y-6">
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="space-y-2">
+                                <label class="text-xs font-black text-on-surface-variant uppercase tracking-widest">Nombres</label>
+                                <input id="nombres" type="text" required class="w-full px-6 py-4 bg-surface-container-low border-0 focus:ring-2 focus:ring-primary rounded-xl font-medium placeholder:text-slate-400" placeholder="Ej: Juan" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-black text-on-surface-variant uppercase tracking-widest">Apellidos</label>
+                                <input id="apellidos" type="text" required class="w-full px-6 py-4 bg-surface-container-low border-0 focus:ring-2 focus:ring-primary rounded-xl font-medium placeholder:text-slate-400" placeholder="Ej: Pérez" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-black text-on-surface-variant uppercase tracking-widest">Cédula de Identidad</label>
+                                <input id="cedula" type="text" required class="w-full px-6 py-4 bg-surface-container-low border-0 focus:ring-2 focus:ring-primary rounded-xl font-medium placeholder:text-slate-400" placeholder="V-00000000" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-black text-on-surface-variant uppercase tracking-widest">Correo Electrónico</label>
+                                <input id="correo" type="email" required class="w-full px-6 py-4 bg-surface-container-low border-0 focus:ring-2 focus:ring-primary rounded-xl font-medium placeholder:text-slate-400" placeholder="correo@corpoelec.gob.ve" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-black text-on-surface-variant uppercase tracking-widest">Usuario (Alias)</label>
+                                <input id="usuario" type="text" required class="w-full px-6 py-4 bg-surface-container-low border-0 focus:ring-2 focus:ring-primary rounded-xl font-medium placeholder:text-slate-400" placeholder="jperez" />
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-xs font-black text-on-surface-variant uppercase tracking-widest">Contraseña</label>
+                                <input id="password" type="password" required class="w-full px-6 py-4 bg-surface-container-low border-0 focus:ring-2 focus:ring-primary rounded-xl font-medium placeholder:text-slate-400" placeholder="••••••••" />
+                            </div>
+                        </div>
+                        <div class="pt-6">
+                            <button type="submit" class="w-full px-8 py-4 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:bg-primary-container transition-colors">Registrar Empleado</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- View: Generar QR -->
+            <section id="view-qr" class="view">
+                <div class="bg-white w-full max-w-xl rounded-3xl shadow-sm border border-slate-100 overflow-hidden p-10 mx-auto mt-4">
+                    <div class="mb-8">
+                        <h3 class="text-3xl font-black headline-font text-on-surface leading-none">Terminal de Credenciales QR</h3>
+                        <p class="text-on-surface-variant mt-2 font-medium">Consulte y genere la credencial QR del personal registrado.</p>
+                    </div>
+                    <div class="space-y-6">
+                        <div class="space-y-2">
+                            <label class="text-xs font-black text-on-surface-variant uppercase tracking-widest">Seleccionar Usuario</label>
+                            <select id="select-usuario-qr" class="w-full px-6 py-4 bg-surface-container-low border-0 focus:ring-2 focus:ring-primary rounded-xl font-medium appearance-none">
+                                <option value="">Cargando usuarios...</option>
+                            </select>
+                        </div>
+                        <button id="btn-generar-qr" class="w-full px-8 py-4 bg-surface-container-highest text-on-surface font-bold rounded-xl hover:bg-slate-300 transition-colors">Mostrar QR</button>
+                        
+                        <div id="qr-result-box" class="hidden mt-8 pt-8 border-t border-slate-100 flex-col items-center justify-center">
+                            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-4 inline-block">
+                                <div id="qrcode"></div>
+                            </div>
+                            <p id="qr-user-name" class="text-xl font-black headline-font text-primary"></p>
+                            <p class="text-sm font-semibold text-slate-400 uppercase tracking-widest mt-1">Credencial Activa</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Escáner QR -->
+            <section id="view-escaner" class="view">
+                <div class="w-full max-w-3xl bg-white rounded-[40px] shadow-[0_10px_60px_rgba(0,0,0,0.03)] p-12 flex flex-col items-center text-center mx-auto mt-4">
+                    <h1 class="text-4xl font-black text-slate-900 headline-font mb-4">Escáner de Acceso</h1>
+                    <p class="text-slate-500 font-medium mb-10">Posicione la credencial QR frente a la cámara para registrar la entrada.</p>
+                    <div class="w-full max-w-xl min-h-[300px] rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center relative group overflow-hidden">
+                        <div class="absolute top-4 right-4 z-0 pointer-events-none">
+                            <span class="material-symbols-outlined text-slate-400 text-lg">info</span>
+                        </div>
+                        <div class="mb-6 z-0 pointer-events-none flex flex-col items-center">
+                            <span class="material-symbols-outlined text-6xl text-slate-400">phone_iphone</span>
+                            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10">
+                                <span class="material-symbols-outlined text-9xl">qr_code_2</span>
+                            </div>
+                        </div>
+                        <div id="reader" class="w-full h-full absolute inset-0 z-10 flex flex-col items-center justify-center"></div>
+                    </div>
+                    <div id="scanner-result" class="mt-6 w-full max-w-lg p-4 rounded-xl font-bold text-center text-lg"></div>
+                </div>
+            </section>
+
+            <!-- View: Reportes -->
+            <section id="view-reportes" class="view">
+                <div class="print-header">
+                    <h2>⚡ Corpoelec</h2>
+                    <h3>Reporte Diario de Asistencia</h3>
+                </div>
+                
+                <div class="no-print flex justify-between items-end mb-8">
+                    <div class="max-w-2xl">
+                        <h1 class="text-4xl font-black text-on-surface headline-font tracking-tighter mb-2 leading-none">Directorio de <span class="text-primary-container">Asistencia</span></h1>
+                        <p class="text-on-surface-variant font-body text-lg">Registro consolidado de entradas del personal.</p>
+                    </div>
+                    <div class="flex gap-4 items-center">
+                        <input type="date" id="filter-date" class="px-4 py-3 bg-white border border-slate-200 rounded-xl font-medium text-slate-600 shadow-sm focus:ring-2 focus:ring-primary" />
+                        <button id="btn-filter" class="px-6 py-3 bg-surface-container-highest text-on-surface hover:bg-slate-300 transition-all font-bold rounded-xl shadow-sm">Filtrar</button>
+                        <button id="btn-print" onclick="window.print()" class="flex items-center gap-2 px-6 py-3 bg-primary text-white hover:bg-primary-container transition-all font-bold rounded-xl shadow-[0_10px_30px_rgba(181,0,11,0.2)]">
+                            <span class="material-symbols-outlined text-sm">print</span> Imprimir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="bg-surface-container-lowest rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.02)] border border-slate-100">
+                    <div class="grid grid-cols-12 bg-surface-dim/30 px-10 py-6 border-b-0 print-bg-primary">
+                        <div class="col-span-4 text-xs font-black text-on-surface-variant uppercase tracking-widest print:text-white">Empleado</div>
+                        <div class="col-span-2 text-xs font-black text-on-surface-variant uppercase tracking-widest text-center print:text-white">Cédula</div>
+                        <div class="col-span-2 text-xs font-black text-on-surface-variant uppercase tracking-widest text-center print:text-white">Fecha</div>
+                        <div class="col-span-2 text-xs font-black text-on-surface-variant uppercase tracking-widest text-center print:text-white">Hora</div>
+                        <div class="col-span-2 text-xs font-black text-on-surface-variant uppercase tracking-widest text-right print:text-white">Método</div>
+                    </div>
+                    
+                    <div id="tabla-asistencias" class="flex flex-col">
+                        <!-- Llenado dinámicamente por app.js y el override inferior -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script de lógica original (sin modificar) -->
+    <script src="app.js"></script>
+    
+    <!-- Script adaptador para fusionar el renderizado de la tabla con el diseño Tailwind -->
+    <script>
+        // Interceptamos la función loadAsistencias original para que dibuje filas con CSS Tailwind
+        // en lugar de usar etiquetas <tr>, coincidiendo perfectamente con la cabecera del nuevo diseño.
+        window.loadAsistencias = async function(filterDate = '') {
+            const tbody = document.getElementById('tabla-asistencias');
+            tbody.innerHTML = '<div class="px-10 py-8 text-center text-slate-500 font-medium">Cargando...</div>';
+            try {
+                const res = await fetch('/api/asistencias');
+                let asistencias = await res.json();
+                
+                if (filterDate) {
+                    asistencias = asistencias.filter(a => a.fecha === filterDate);
+                }
+                
+                if (asistencias.length === 0) {
+                    tbody.innerHTML = '<div class="px-10 py-8 text-center text-slate-500 font-medium">No hay registros de asistencia en esta fecha.</div>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                asistencias.forEach((a, index) => {
+                    const isEven = index % 2 === 0;
+                    const bgClass = isEven ? 'hover:bg-surface-container-low' : 'bg-surface-container-low/20 hover:bg-surface-container-low';
+                    const initials = a.nombres.charAt(0) + a.apellidos.charAt(0);
+                    
+                    const row = document.createElement('div');
+                    row.className = `grid grid-cols-12 items-center px-10 py-6 transition-colors group ${bgClass} border-b border-slate-50`;
+                    row.innerHTML = `
+                        <div class="col-span-4 flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold print:border print:border-black">
+                                ${initials}
+                            </div>
+                            <div>
+                                <h4 class="text-on-surface font-bold headline-font text-base leading-tight">${a.nombres} ${a.apellidos}</h4>
+                            </div>
+                        </div>
+                        <div class="col-span-2 text-center">
+                            <span class="px-3 py-1 bg-surface-container-high rounded-full font-mono text-xs text-on-surface-variant font-bold print:border print:border-black">V-${a.cedula}</span>
+                        </div>
+                        <div class="col-span-2 text-center">
+                            <p class="text-on-surface font-semibold text-sm">${a.fecha}</p>
+                        </div>
+                        <div class="col-span-2 text-center">
+                            <p class="text-on-surface font-semibold text-sm">${a.hora}</p>
+                        </div>
+                        <div class="col-span-2 text-right">
+                            <span class="text-xs font-bold uppercase tracking-wider text-primary">${a.metodo}</span>
+                        </div>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                tbody.innerHTML = '<div class="px-10 py-8 text-center text-red-500 font-medium">Error de conexión al cargar datos</div>';
+            }
+        };
+
+        // Arreglo para que el box del QR use flex en lugar de block de la lógica original
+        document.getElementById('btn-generar-qr').addEventListener('click', () => {
+            setTimeout(() => {
+                const box = document.getElementById('qr-result-box');
+                if (box.style.display === 'block') {
+                    box.style.display = 'flex';
+                }
+            }, 10);
+        });
+    </script>
+</body>
+</html>
