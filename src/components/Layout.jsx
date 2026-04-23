@@ -40,9 +40,7 @@ export default function Layout() {
       {/* SideNavBar */}
       <aside className="fixed left-0 top-0 h-screen w-64 flex flex-col py-8 gap-6 bg-slate-50 dark:bg-slate-950 border-r-0 z-30 pt-24 no-print">
         <div className="px-8 mb-8 flex flex-col gap-2">
-          <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mb-2">
-            <Zap size={32} className="text-white" fill="currentColor" />
-          </div>
+
           <h2 className="text-lg font-black text-slate-900 dark:text-white headline-font leading-tight">
             Gestión de Asistencia
           </h2>
