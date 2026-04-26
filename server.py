@@ -165,7 +165,44 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_DELETE(self):
         parsed_path = urlparse(self.path)
-        if parsed_path.path == '/api/asistencias':
+
+        if parsed_path.path == '/api/usuarios':
+            params = parse_qs(parsed_path.query)
+            user_id = params.get('id', [None])[0]
+
+            if not user_id:
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': 'ID de usuario requerido'}).encode('utf-8'))
+                return
+
+            conn = sqlite3.connect('asistencia.db')
+            c = conn.cursor()
+            try:
+                c.execute('DELETE FROM Asistencias WHERE usuario_id = ?', (user_id,))
+                c.execute('DELETE FROM Gestion_QR WHERE usuario_id = ?', (user_id,))
+                c.execute('DELETE FROM Usuarios WHERE id = ?', (user_id,))
+                deleted = c.rowcount
+                conn.commit()
+                if deleted:
+                    response = {'status': 'success', 'message': 'Usuario eliminado correctamente'}
+                    status_code = 200
+                else:
+                    response = {'status': 'error', 'message': 'Usuario no encontrado'}
+                    status_code = 404
+            except Exception as e:
+                response = {'status': 'error', 'message': str(e)}
+                status_code = 500
+            finally:
+                conn.close()
+
+            self.send_response(status_code)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+
+        elif parsed_path.path == '/api/asistencias':
             params = parse_qs(parsed_path.query)
             fecha = params.get('fecha', [None])[0]
 

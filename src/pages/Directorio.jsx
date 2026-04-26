@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Filter, UserPlus, X, QrCode } from 'lucide-react';
+import { Filter, UserPlus, X, QrCode, Trash2, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../components/AlertProvider';
 import clsx from 'clsx';
@@ -8,6 +8,8 @@ export default function Directorio() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, nombres, apellidos }
+  const [deleting, setDeleting] = useState(false);
   const { showAlert } = useAlert();
   const navigate = useNavigate();
 
@@ -43,12 +45,33 @@ export default function Directorio() {
       if (res.ok) {
         showAlert(result.message, 'success');
         setIsModalOpen(false);
+        e.target.reset();
         fetchUsuarios();
       } else {
         showAlert(result.message, 'error');
       }
     } catch (err) {
       showAlert('Error de conexión al servidor', 'error');
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/usuarios?id=${deleteTarget.id}`, { method: 'DELETE' });
+      const result = await res.json();
+      if (res.ok) {
+        showAlert(result.message, 'success');
+        setDeleteTarget(null);
+        fetchUsuarios();
+      } else {
+        showAlert(result.message, 'error');
+      }
+    } catch (err) {
+      showAlert('Error de conexión al servidor', 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -123,6 +146,13 @@ export default function Directorio() {
                     >
                       <QrCode size={20} />
                     </button>
+                    <button
+                      onClick={() => setDeleteTarget(u)}
+                      className="w-10 h-10 rounded-lg flex items-center justify-center bg-red-50 text-red-500 hover:bg-red-100 transition-all"
+                      title="Eliminar usuario"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
               );
@@ -192,6 +222,43 @@ export default function Directorio() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-on-background/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-10 text-center">
+            <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle size={32} className="text-red-500" />
+            </div>
+            <h3 className="text-2xl font-black headline-font text-on-surface mb-2">¿Eliminar empleado?</h3>
+            <p className="text-on-surface-variant font-medium mb-1">
+              Esta acción eliminará permanentemente a:
+            </p>
+            <p className="text-on-surface font-black text-lg mb-2">
+              {deleteTarget.nombres} {deleteTarget.apellidos}
+            </p>
+            <p className="text-red-500 text-sm font-semibold mb-8">
+              También se eliminarán todos sus registros de asistencia y su código QR.
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="flex-1 px-6 py-4 bg-surface-container-high text-on-surface font-bold rounded-xl hover:bg-slate-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="flex-1 px-6 py-4 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors shadow-lg shadow-red-200 disabled:opacity-60"
+              >
+                {deleting ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
           </div>
         </div>
       )}
