@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Directorio from './pages/Directorio';
@@ -8,10 +8,14 @@ import Login from './pages/Login';
 import { AlertProvider } from './components/AlertProvider';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Wrapper that redirects to /login if not authenticated
+// Guarda la URL original (con query params) y redirige al login
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  const location = useLocation();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  return children;
 }
 
 function AppRoutes() {
