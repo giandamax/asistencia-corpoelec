@@ -3,10 +3,15 @@ import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAlert } from '../components/AlertProvider';
 import { useLocation } from 'react-router-dom';
+import { AlertTriangle, Settings, Check } from 'lucide-react';
 
-// Builds the URL that the QR will encode
-const buildQrUrl = (userId, cedula) => {
-  const base = window.location.origin;
+const STORAGE_KEY = 'corpoelec_server_url';
+
+// Lee la URL base guardada, o usa el origen actual como fallback
+const getSavedBase = () =>
+  localStorage.getItem(STORAGE_KEY) || window.location.origin;
+
+const buildQrUrl = (userId, cedula, base) => {
   const token = `USER_${userId}_${cedula}`;
   return `${base}/reportes?empleado=${userId}&token=${encodeURIComponent(token)}`;
 };
@@ -16,8 +21,22 @@ export default function GenerarQR() {
   const [selectedUser, setSelectedUser] = useState('');
   const [qrData, setQrData] = useState('');
   const [userName, setUserName] = useState('');
+  const [serverUrl, setServerUrl] = useState(getSavedBase);
+  const [editingUrl, setEditingUrl] = useState(false);
+  const [urlDraft, setUrlDraft] = useState('');
   const { showAlert } = useAlert();
   const location = useLocation();
+
+  const isLocalhost = serverUrl.includes('localhost') || serverUrl.includes('127.0.0.1');
+
+  const saveUrl = () => {
+    const cleaned = urlDraft.replace(/\/$/, ''); // quitar trailing slash
+    localStorage.setItem(STORAGE_KEY, cleaned);
+    setServerUrl(cleaned);
+    setEditingUrl(false);
+    setQrData(''); // reset QR para que se regenere con nueva URL
+    showAlert('URL del servidor guardada', 'success');
+  };
 
   useEffect(() => {
     const fetchUsuarios = async () => {
@@ -31,7 +50,7 @@ export default function GenerarQR() {
           const user = data.find(u => u.id === location.state.userId);
           if (user) {
             setSelectedUser(String(user.id));
-            setQrData(buildQrUrl(user.id, user.cedula_identidad));
+            setQrData(buildQrUrl(user.id, user.cedula_identidad, serverUrl));
             setUserName(`${user.nombres} ${user.apellidos}`);
           }
         }
@@ -46,7 +65,7 @@ export default function GenerarQR() {
     if (selectedUser) {
       const user = usuarios.find(u => String(u.id) === selectedUser);
       if (user) {
-        setQrData(buildQrUrl(user.id, user.cedula_identidad));
+        setQrData(buildQrUrl(user.id, user.cedula_identidad, serverUrl));
         setUserName(`${user.nombres} ${user.apellidos}`);
       }
     } else {
@@ -55,15 +74,64 @@ export default function GenerarQR() {
   };
 
   return (
-    <div className="bg-white w-full max-w-2xl rounded-3xl shadow-sm overflow-hidden p-10 mx-auto mt-4 border border-slate-100">
+    <div className="bg-white w-full max-w-2xl rounded-3xl shadow-sm overflow-hidden p-6 sm:p-10 mx-auto mt-4 border border-slate-100">
       <div className="mb-8">
-        <h3 className="text-3xl font-black headline-font text-on-surface leading-none">
+        <h3 className="text-2xl sm:text-3xl font-black headline-font text-on-surface leading-none">
           Terminal de Credenciales QR
         </h3>
-        <p className="text-on-surface-variant mt-2 font-medium">
+        <p className="text-on-surface-variant mt-2 font-medium text-sm">
           Consulte y genere la credencial QR del personal registrado para imprimir o enviar.
         </p>
       </div>
+
+      {/* Server URL config */}
+      <div className="mb-6 rounded-2xl border border-slate-100 bg-surface-container-low overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Settings size={14} className="text-on-surface-variant flex-shrink-0" />
+            <span className="text-xs font-black text-on-surface-variant uppercase tracking-widest">URL del servidor</span>
+          </div>
+          {!editingUrl && (
+            <button
+              onClick={() => { setUrlDraft(serverUrl); setEditingUrl(true); }}
+              className="text-xs font-bold text-primary hover:text-primary-container transition-colors flex-shrink-0 ml-2"
+            >
+              Cambiar
+            </button>
+          )}
+        </div>
+
+        {editingUrl ? (
+          <div className="flex gap-2 px-4 pb-4">
+            <input
+              value={urlDraft}
+              onChange={e => setUrlDraft(e.target.value)}
+              placeholder="http://192.168.1.100:8000"
+              className="flex-1 px-3 py-2 bg-white rounded-xl border border-slate-200 text-sm font-mono text-on-surface outline-none focus:border-primary"
+            />
+            <button
+              onClick={saveUrl}
+              className="px-4 py-2 bg-primary text-white rounded-xl font-bold text-xs flex items-center gap-1"
+            >
+              <Check size={14} /> Guardar
+            </button>
+          </div>
+        ) : (
+          <p className="px-4 pb-3 text-xs font-mono text-on-surface truncate">{serverUrl}</p>
+        )}
+
+        {isLocalhost && !editingUrl && (
+          <div className="flex items-start gap-2 px-4 pb-3 pt-0">
+            <AlertTriangle size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-600 font-semibold">
+              Estás usando <strong>localhost</strong> — los QR solo funcionarán en esta máquina.
+              Cambia la URL a la IP de tu servidor para que funcionen en teléfonos.
+              Ej: <span className="font-mono">http://192.168.X.X:8000</span>
+            </p>
+          </div>
+        )}
+      </div>
+
       <div className="space-y-6">
         <div className="space-y-2">
           <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest">
