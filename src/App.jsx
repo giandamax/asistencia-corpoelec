@@ -5,6 +5,7 @@ import Directorio from './pages/Directorio';
 import GenerarQR from './pages/GenerarQR';
 import Reportes from './pages/Reportes';
 import Login from './pages/Login';
+import Scan from './pages/Scan';
 import { AlertProvider } from './components/AlertProvider';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
@@ -22,6 +23,9 @@ function AppRoutes() {
   const { isAuthenticated } = useAuth();
   return (
     <Routes>
+      {/* Ruta pública: escaneo QR sin login */}
+      <Route path="/scan" element={<Scan />} />
+
       <Route
         path="/login"
         element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}

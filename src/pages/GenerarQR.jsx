@@ -13,7 +13,7 @@ const getSavedBase = () =>
 
 const buildQrUrl = (userId, cedula, base) => {
   const token = `USER_${userId}_${cedula}`;
-  return `${base}/reportes?empleado=${userId}&token=${encodeURIComponent(token)}`;
+  return `${base}/scan?token=${encodeURIComponent(token)}`;
 };
 
 export default function GenerarQR() {
