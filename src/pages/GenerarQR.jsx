@@ -81,9 +81,13 @@ export default function GenerarQR() {
         </div>
         <button
           onClick={handleGenerate}
-          className="w-full px-8 py-4 bg-surface-container-highest text-on-surface font-bold rounded-xl hover:bg-slate-300 transition-colors"
+          className="w-full px-8 py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary-container transition-colors flex items-center justify-center gap-3 shadow-[0_8px_24px_rgba(181,0,11,0.2)]"
         >
-          Mostrar QR
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            <path d="M14 14h3v3M17 20h3M20 17h-3"/>
+          </svg>
+          Generar y Mostrar Código QR
         </button>
 
         {qrData && (
