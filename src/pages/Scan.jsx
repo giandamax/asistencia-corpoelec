@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle, XCircle, Loader, Zap, Clock, LogIn, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Loader, Zap, Clock, Info, LogIn } from 'lucide-react';
 
 export default function Scan() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
-  const [status, setStatus] = useState('loading'); // 'loading' | 'success' | 'already' | 'error' | 'invalid'
+  const [status, setStatus] = useState('loading'); // 'loading' | 'success' | 'error' | 'warning' | 'invalid'
   const [message, setMessage] = useState('');
   const [empleado, setEmpleado] = useState('');
   const [hora, setHora] = useState('');
+  const isRegistered = useRef(false);
 
   useEffect(() => {
     if (!token) {
@@ -16,6 +17,8 @@ export default function Scan() {
       setMessage('Código QR inválido o incompleto.');
       return;
     }
+    if (isRegistered.current) return;
+    isRegistered.current = true;
 
     const registrar = async () => {
       try {
@@ -27,30 +30,28 @@ export default function Scan() {
         const data = await res.json();
 
         if (res.ok) {
-          // Registro exitoso
           setStatus('success');
-          setMessage('Tu entrada quedó guardada en el sistema.');
+          setMessage(data.message || 'Asistencia registrada correctamente.');
           const match = data.message?.match(/correctamente: (.+)/);
           if (match) setEmpleado(match[1]);
         } else {
-          // Verificar si es "ya registrado hoy" — en ese caso mostrar como advertencia, no error
-          const msg = data.message || '';
-          if (msg.toLowerCase().includes('ya fue registrada') || msg.toLowerCase().includes('ya registrad')) {
-            setStatus('already');
-            setMessage('Tu asistencia ya fue marcada anteriormente hoy.');
-            const match = msg.match(/para (.+) ya fue/);
+          // If already registered today, show a warning instead of a hard error
+          if (data.message?.includes('ya fue registrada')) {
+            setStatus('warning');
+            setMessage(data.message);
+            const match = data.message?.match(/para (.+) ya fue/);
             if (match) setEmpleado(match[1]);
           } else {
             setStatus('error');
-            setMessage(msg || 'No se pudo registrar. Contacta al administrador.');
+            setMessage(data.message || 'No se pudo registrar la asistencia.');
           }
         }
       } catch {
         setStatus('error');
-        setMessage('Error de conexión. Verifica que estés en la red correcta.');
+        setMessage('Error de conexión con el servidor. Intenta nuevamente.');
       }
 
-      // Hora actual
+      // Set current time
       const now = new Date();
       setHora(now.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }));
     };
@@ -58,46 +59,8 @@ export default function Scan() {
     registrar();
   }, [token]);
 
-  // Configuración visual por estado
-  const config = {
-    loading: {
-      icon: <Loader size={40} className="text-slate-400 animate-spin" />,
-      bg: 'bg-slate-100',
-      bar: 'bg-slate-300 animate-pulse',
-      title: 'Verificando...',
-      titleColor: 'text-slate-500',
-    },
-    success: {
-      icon: <CheckCircle size={40} className="text-green-500" strokeWidth={1.5} />,
-      bg: 'bg-green-50',
-      bar: 'bg-green-500',
-      title: '¡Asistencia Registrada!',
-      titleColor: 'text-green-700',
-    },
-    already: {
-      icon: <AlertTriangle size={40} className="text-amber-500" strokeWidth={1.5} />,
-      bg: 'bg-amber-50',
-      bar: 'bg-amber-400',
-      title: 'Ya Registrado Hoy',
-      titleColor: 'text-amber-700',
-    },
-    error: {
-      icon: <XCircle size={40} className="text-primary" strokeWidth={1.5} />,
-      bg: 'bg-red-50',
-      bar: 'bg-primary',
-      title: 'Error al Registrar',
-      titleColor: 'text-primary',
-    },
-    invalid: {
-      icon: <XCircle size={40} className="text-slate-400" strokeWidth={1.5} />,
-      bg: 'bg-slate-100',
-      bar: 'bg-slate-400',
-      title: 'QR Inválido',
-      titleColor: 'text-slate-600',
-    },
-  };
-
-  const c = config[status];
+  const isSuccess = status === 'success';
+  const isLoading = status === 'loading';
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
@@ -113,22 +76,41 @@ export default function Scan() {
         </div>
       </div>
 
-      {/* Card */}
+      {/* Status Card */}
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] overflow-hidden border border-slate-100">
 
-        {/* Color bar */}
-        <div className={`h-2 w-full transition-colors duration-500 ${c.bar}`} />
+        {/* Color bar top */}
+        <div className={`h-2 w-full ${isLoading ? 'bg-slate-200 animate-pulse' : isSuccess ? 'bg-green-500' : 'bg-primary'}`} />
 
         <div className="px-8 py-10 flex flex-col items-center text-center">
 
           {/* Icon */}
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${c.bg}`}>
-            {c.icon}
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${
+            isLoading ? 'bg-slate-100' :
+            isSuccess ? 'bg-green-50' : 
+            status === 'warning' ? 'bg-amber-50' : 'bg-red-50'
+          }`}>
+            {isLoading ? (
+              <Loader size={36} className="text-slate-400 animate-spin" />
+            ) : isSuccess ? (
+              <CheckCircle size={40} className="text-green-500" strokeWidth={1.5} />
+            ) : status === 'warning' ? (
+              <Info size={40} className="text-amber-500" strokeWidth={1.5} />
+            ) : (
+              <XCircle size={40} className="text-primary" strokeWidth={1.5} />
+            )}
           </div>
 
           {/* Title */}
-          <h1 className={`text-2xl font-black headline-font mb-2 ${c.titleColor}`}>
-            {c.title}
+          <h1 className={`text-2xl font-black headline-font mb-2 ${
+            isLoading ? 'text-slate-400' :
+            isSuccess ? 'text-green-700' : 
+            status === 'warning' ? 'text-amber-700' : 'text-on-surface'
+          }`}>
+            {isLoading ? 'Verificando...' :
+             isSuccess ? '¡Asistencia Registrada!' :
+             status === 'warning' ? 'Asistencia Previa' :
+             status === 'error' ? 'No se pudo registrar' : 'QR Inválido'}
           </h1>
 
           {/* Employee name */}
@@ -137,47 +119,41 @@ export default function Scan() {
           )}
 
           {/* Message */}
-          <p className="text-sm font-medium text-on-surface-variant leading-relaxed">
+          <p className={`text-sm font-medium ${
+            isSuccess ? 'text-green-600' : 'text-on-surface-variant'
+          }`}>
             {message}
           </p>
 
-          {/* Time badge */}
-          {hora && status !== 'loading' && (
+          {/* Time */}
+          {hora && !isLoading && (
             <div className="mt-5 flex items-center gap-2 bg-surface-container-low px-4 py-2.5 rounded-xl">
-              <Clock size={14} className={
-                status === 'success' ? 'text-green-500' :
-                status === 'already' ? 'text-amber-500' : 'text-slate-400'
-              } />
+              <Clock size={15} className={isSuccess ? 'text-green-500' : 'text-slate-400'} />
               <span className="font-mono text-sm font-bold text-on-surface">{hora}</span>
-              <span className="text-xs text-slate-400">—</span>
+              <span className="text-xs text-slate-400 font-medium">—</span>
               <span className="text-xs font-semibold text-slate-500">
-                {new Date().toLocaleDateString('es-VE', { weekday: 'short', day: 'numeric', month: 'short' })}
+                {new Date().toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long' })}
               </span>
             </div>
           )}
 
-          {/* Helper text */}
-          {status !== 'loading' && (
-            <p className="text-xs text-slate-400 mt-4 font-medium">
-              {status === 'success' ? 'Puedes cerrar esta ventana.' :
-               status === 'already' ? 'Solo se permite un registro por día.' :
-               'Si el error persiste, contacta al administrador.'}
+          {/* Instructions */}
+          {!isLoading && (
+            <p className="text-xs text-slate-400 mt-6 font-medium">
+              {isSuccess || status === 'warning'
+                ? 'Puedes cerrar esta ventana.'
+                : 'Si el error persiste, contacta al administrador.'}
             </p>
           )}
-        </div>
 
-        {/* Admin login button */}
-        <div className="px-8 pb-8">
-          <div className="border-t border-slate-100 pt-5">
-            <p className="text-xs text-center text-slate-400 font-medium mb-3">¿Eres administrador?</p>
-            <Link
-              to="/login"
-              className="flex items-center justify-center gap-2 w-full py-3 px-6 bg-surface-container-low text-on-surface hover:bg-primary hover:text-white transition-all font-bold rounded-xl text-sm border border-slate-200 hover:border-primary group"
-            >
-              <LogIn size={16} className="group-hover:rotate-0 transition-transform" />
-              Iniciar Sesión — Panel de Control
-            </Link>
-          </div>
+          {/* Login Button */}
+          <Link
+            to="/login"
+            className="mt-6 w-full py-3 px-4 bg-surface-container-low text-on-surface-variant hover:bg-slate-100 transition-colors rounded-xl font-bold text-sm flex items-center justify-center gap-2 border border-slate-200"
+          >
+            <LogIn size={16} />
+            Iniciar Sesión Administrativa
+          </Link>
         </div>
       </div>
 
