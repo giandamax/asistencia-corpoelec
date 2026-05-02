@@ -53,7 +53,9 @@ def init_db():
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed_path = urlparse(self.path)
-        if parsed_path.path == '/api/usuarios':
+        path = parsed_path.path
+
+        if path == '/api/usuarios':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -63,7 +65,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             usuarios = [{'id': row[0], 'nombres': row[1], 'apellidos': row[2], 'cedula_identidad': row[3], 'correo': row[4], 'usuario': row[5]} for row in c.fetchall()]
             conn.close()
             self.wfile.write(json.dumps(usuarios).encode('utf-8'))
-        elif parsed_path.path == '/api/asistencias':
+
+        elif path == '/api/asistencias':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -79,8 +82,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             asistencias = [{'nombres': row[0], 'apellidos': row[1], 'cedula': row[2], 'fecha': row[3], 'hora': row[4], 'metodo': row[5]} for row in c.fetchall()]
             conn.close()
             self.wfile.write(json.dumps(asistencias).encode('utf-8'))
+
         else:
+            # Archivos estáticos desde dist/ o SPA routing
+            _, ext = os.path.splitext(path)
+            if ext:
+                # Tiene extensión (.js, .css, .png, etc.) → servir desde dist/
+                self.path = '/dist' + self.path
+            else:
+                # Ruta de React (/, /login, /dashboard, /reportes, etc.) → SPA
+                self.path = '/dist/index.html'
             super().do_GET()
+
+    def log_message(self, format, *args):
+        # Suprimir logs verbosos de archivos estáticos
+        if not any(ext in args[0] for ext in ['.js', '.css', '.png', '.ico', '.svg', '.woff']):
+            super().log_message(format, *args)
 
     def do_POST(self):
         if self.path == '/api/usuarios':
