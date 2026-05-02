@@ -159,35 +159,35 @@ export default function Reportes() {
 
   return (
     <>
-      <div className="flex justify-between items-end mb-8 no-print">
-        <div className="max-w-2xl">
-          <h1 className="text-4xl font-black text-on-surface headline-font tracking-tighter mb-2 leading-none">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 no-print">
+        <div>
+          <h1 className="text-2xl sm:text-4xl font-black text-on-surface headline-font tracking-tighter leading-none">
             Registro de <span className="text-primary-container">Asistencias</span>
           </h1>
-          <p className="text-on-surface-variant font-body text-lg">
-            Histórico consolidado de entradas del personal.
-          </p>
+          <p className="text-on-surface-variant font-body text-base mt-1">Histórico consolidado de entradas del personal.</p>
         </div>
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
           <input
             type="date"
             value={filterDate}
             onChange={(e) => setFilterDate(e.target.value)}
-            className="px-4 py-3 bg-white border border-slate-200 rounded-xl font-medium text-slate-600 shadow-sm focus:ring-2 focus:ring-primary outline-none"
+            className="px-3 py-2.5 bg-white border border-slate-200 rounded-xl font-medium text-slate-600 shadow-sm focus:ring-2 focus:ring-primary outline-none text-sm"
           />
           {asistencias.length > 0 && (
             <button
               onClick={() => setShowClearModal(true)}
-              className="px-6 py-3 bg-surface-container-highest text-on-surface hover:bg-red-50 hover:text-red-700 hover:border-red-200 border border-transparent transition-all font-bold rounded-xl flex items-center gap-2"
+              className="px-4 py-2.5 bg-surface-container-highest text-on-surface hover:bg-red-50 hover:text-red-700 hover:border-red-200 border border-slate-200 transition-all font-bold rounded-xl flex items-center gap-2 text-sm"
+              title="Eliminar los registros de asistencia mostrados actualmente"
             >
-              <Trash2 size={20} /> Limpiar
+              <Trash2 size={16} /> <span className="hidden sm:inline">Borrar Registros</span><span className="sm:hidden">Borrar</span>
             </button>
           )}
           <button
             onClick={handlePrint}
-            className="px-6 py-3 bg-primary text-white hover:bg-primary-container transition-all font-bold rounded-xl shadow-[0_4px_14px_rgba(181,0,11,0.3)] flex items-center gap-2"
+            className="px-4 py-2.5 bg-primary text-white hover:bg-primary-container transition-all font-bold rounded-xl shadow-[0_4px_14px_rgba(181,0,11,0.3)] flex items-center gap-2 text-sm"
+            title="Imprimir el reporte de asistencia actual"
           >
-            <Printer size={20} /> Imprimir
+            <Printer size={16} /> <span className="hidden sm:inline">Imprimir Reporte</span><span className="sm:hidden">Imprimir</span>
           </button>
         </div>
       </div>
@@ -254,15 +254,15 @@ export default function Reportes() {
         {empleadoInfo && <p className="text-slate-600">Empleado: {empleadoInfo.nombre}</p>}
       </div>
 
-      <div className="bg-surface-container-lowest rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.02)] border border-slate-100 print:shadow-none print:border-black print:rounded-none">
-        <div className="grid grid-cols-12 bg-surface-dim/30 px-10 py-6 border-b-0 print:bg-[#b5000b] print:text-white print:-webkit-print-color-adjust-exact">
+      {/* ── Desktop table ── */}
+      <div className="hidden md:block bg-surface-container-lowest rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.02)] border border-slate-100 print:shadow-none print:border-black print:rounded-none">
+        <div className="grid grid-cols-12 bg-surface-dim/30 px-10 py-6 print:bg-[#b5000b] print:text-white">
           <div className="col-span-4 text-xs font-black text-on-surface-variant uppercase tracking-widest print:text-white">Empleado</div>
           <div className="col-span-2 text-xs font-black text-on-surface-variant uppercase tracking-widest text-center print:text-white">Cédula</div>
           <div className="col-span-2 text-xs font-black text-on-surface-variant uppercase tracking-widest text-center print:text-white">Fecha</div>
           <div className="col-span-2 text-xs font-black text-on-surface-variant uppercase tracking-widest text-center print:text-white">Hora</div>
           <div className="col-span-2 text-xs font-black text-on-surface-variant uppercase tracking-widest text-right print:text-white">Método</div>
         </div>
-
         <div className="flex flex-col">
           {loading ? (
             <div className="px-10 py-8 text-center text-slate-500 font-medium">Cargando...</div>
@@ -273,67 +273,73 @@ export default function Reportes() {
               const isEven = index % 2 === 0;
               const isHighlighted = empleadoId && String(a.usuario_id ?? a.id_usuario ?? a.cedula) === String(empleadoId)
                 || (empleadoInfo && `${a.nombres} ${a.apellidos}` === empleadoInfo.nombre);
-
               const bgClass = isHighlighted
                 ? 'bg-primary/5 border-l-4 border-l-primary ring-1 ring-inset ring-primary/10'
-                : isEven
-                  ? 'hover:bg-surface-container-low'
-                  : 'bg-surface-container-low/20 hover:bg-surface-container-low';
-
+                : isEven ? 'hover:bg-surface-container-low' : 'bg-surface-container-low/20 hover:bg-surface-container-low';
               const initials = a.nombres.charAt(0) + a.apellidos.charAt(0);
-
               return (
                 <div
                   key={index}
                   ref={isHighlighted ? highlightedRowRef : null}
-                  className={clsx(
-                    'grid grid-cols-12 items-center px-10 py-6 transition-all duration-500 group border-b border-slate-50 print:border-b-black print:py-2',
-                    bgClass,
-                    isHighlighted && 'animate-pulse-once'
-                  )}
+                  className={clsx('grid grid-cols-12 items-center px-10 py-5 transition-all duration-500 border-b border-slate-50 print:border-b-black print:py-2', bgClass, isHighlighted && 'animate-pulse-once')}
                 >
-                  <div className="col-span-4 flex items-center gap-4">
-                    <div className={clsx(
-                      'w-10 h-10 rounded-full flex items-center justify-center font-bold print:border print:border-black print:bg-transparent',
-                      isHighlighted
-                        ? 'bg-primary text-white shadow-md shadow-primary/30'
-                        : 'bg-tertiary-container/20 text-tertiary'
-                    )}>
-                      {initials}
-                    </div>
+                  <div className="col-span-4 flex items-center gap-3">
+                    <div className={clsx('w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 print:border print:border-black', isHighlighted ? 'bg-primary text-white' : 'bg-tertiary-container/20 text-tertiary')}>{initials}</div>
                     <div>
-                      <h4 className={clsx(
-                        'font-bold headline-font text-base leading-tight print:text-black',
-                        isHighlighted ? 'text-primary' : 'text-on-surface'
-                      )}>
+                      <h4 className={clsx('font-bold headline-font text-sm leading-tight print:text-black', isHighlighted ? 'text-primary' : 'text-on-surface')}>
                         {a.nombres} {a.apellidos}
-                        {isHighlighted && (
-                          <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-primary text-white px-2 py-0.5 rounded-full">
-                            <QrCode size={10} /> Escaneado
-                          </span>
-                        )}
+                        {isHighlighted && <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-primary text-white px-2 py-0.5 rounded-full"><QrCode size={10} /> Escaneado</span>}
                       </h4>
                     </div>
                   </div>
-                  <div className="col-span-2 text-center">
-                    <span className="px-3 py-1 bg-surface-container-high rounded-full font-mono text-xs text-on-surface-variant font-bold print:border print:border-black print:bg-transparent print:text-black">
-                      V-{a.cedula}
-                    </span>
-                  </div>
-                  <div className="col-span-2 text-center">
-                    <p className="text-on-surface font-semibold text-sm print:text-black">{a.fecha}</p>
-                  </div>
-                  <div className="col-span-2 text-center">
-                    <p className="text-on-surface font-semibold text-sm print:text-black">{a.hora}</p>
-                  </div>
-                  <div className="col-span-2 text-right">
-                    <span className="text-xs font-bold uppercase tracking-wider text-primary print:text-black">{a.metodo}</span>
-                  </div>
+                  <div className="col-span-2 text-center"><span className="px-2 py-1 bg-surface-container-high rounded-full font-mono text-xs text-on-surface-variant font-bold print:border print:border-black print:bg-transparent print:text-black">V-{a.cedula}</span></div>
+                  <div className="col-span-2 text-center"><p className="text-on-surface font-semibold text-sm print:text-black">{a.fecha}</p></div>
+                  <div className="col-span-2 text-center"><p className="text-on-surface font-semibold text-sm print:text-black">{a.hora}</p></div>
+                  <div className="col-span-2 text-right"><span className="text-xs font-bold uppercase tracking-wider text-primary print:text-black">{a.metodo}</span></div>
                 </div>
               );
             })
           )}
         </div>
+      </div>
+
+      {/* ── Mobile cards ── */}
+      <div className="md:hidden flex flex-col gap-3">
+        {loading ? (
+          <div className="py-8 text-center text-slate-500 text-sm">Cargando...</div>
+        ) : rowsToRender.length === 0 ? (
+          <div className="py-8 text-center text-slate-500 text-sm">No hay registros de asistencia.</div>
+        ) : (
+          rowsToRender.map((a, index) => {
+            const isHighlighted = empleadoId && String(a.cedula) === String(empleadoId)
+              || (empleadoInfo && `${a.nombres} ${a.apellidos}` === empleadoInfo.nombre);
+            const initials = a.nombres.charAt(0) + a.apellidos.charAt(0);
+            return (
+              <div
+                key={index}
+                ref={isHighlighted ? highlightedRowRef : null}
+                className={clsx('bg-white rounded-2xl p-4 border shadow-sm', isHighlighted ? 'border-primary/30 bg-primary/[0.02]' : 'border-slate-100')}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={clsx('w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0', isHighlighted ? 'bg-primary text-white' : 'bg-tertiary-container/20 text-tertiary')}>{initials}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className={clsx('font-bold text-sm leading-tight truncate', isHighlighted ? 'text-primary' : 'text-on-surface')}>
+                      {a.nombres} {a.apellidos}
+                      {isHighlighted && <span className="ml-2 inline-flex items-center gap-1 text-[9px] font-black uppercase bg-primary text-white px-1.5 py-0.5 rounded-full"><QrCode size={8} /> Escaneado</span>}
+                    </p>
+                    <p className="text-xs font-mono text-on-surface-variant">V-{a.cedula}</p>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-primary bg-primary/5 px-2 py-1 rounded-full flex-shrink-0">{a.metodo}</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-slate-500 font-medium pl-13">
+                  <span className="font-mono">{a.fecha}</span>
+                  <span className="text-slate-300">·</span>
+                  <span className="font-mono font-bold text-on-surface">{a.hora}</span>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Clear Records Confirmation Modal */}

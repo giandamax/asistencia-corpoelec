@@ -4,15 +4,13 @@ import { ArrowRight } from 'lucide-react';
 export default function Dashboard() {
   return (
     <>
-      <div className="flex justify-between items-end mb-12">
-        <div className="max-w-2xl">
-          <h1 className="text-6xl font-black text-on-surface headline-font tracking-tighter mb-4 leading-none">
-            Panel de <span className="text-primary-container">Control</span>
-          </h1>
-          <p className="text-on-surface-variant font-body text-lg max-w-md">
-            Sistema integral de gestión de asistencia digital y terminal de seguridad.
-          </p>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl sm:text-6xl font-black text-on-surface headline-font tracking-tighter mb-2 leading-none">
+          Panel de <span className="text-primary-container">Control</span>
+        </h1>
+        <p className="text-on-surface-variant font-body text-base sm:text-lg max-w-md">
+          Sistema integral de gestión de asistencia digital y terminal de seguridad.
+        </p>
       </div>
 
       <div className="mt-12 grid grid-cols-1 gap-8">

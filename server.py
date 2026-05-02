@@ -3,8 +3,13 @@ import socketserver
 import sqlite3
 import json
 import os
+import hashlib
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
+
+def hash_password(password: str) -> str:
+    """Return SHA-256 hex digest of the given password."""
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 PORT = 8000
 
@@ -86,8 +91,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             conn = sqlite3.connect('asistencia.db')
             c = conn.cursor()
             try:
+                hashed = hash_password(data['password'])
                 c.execute('INSERT INTO Usuarios (nombres, apellidos, cedula_identidad, correo, usuario, password) VALUES (?, ?, ?, ?, ?, ?)', 
-                          (data['nombres'], data['apellidos'], data['cedula_identidad'], data['correo'], data['usuario'], data['password']))
+                          (data['nombres'], data['apellidos'], data['cedula_identidad'], data['correo'], data['usuario'], hashed))
                 user_id = c.lastrowid
                 
                 qr_data = f"USER_{user_id}_{data['cedula_identidad']}"
@@ -108,6 +114,47 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(json.dumps(response).encode('utf-8'))
             
+        elif self.path == '/api/login':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            usuario = data.get('usuario', '').strip()
+            password = data.get('password', '')
+
+            if not usuario or not password:
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': 'Usuario y contraseña son requeridos.'}).encode('utf-8'))
+                return
+
+            hashed = hash_password(password)
+            conn = sqlite3.connect('asistencia.db')
+            c = conn.cursor()
+            c.execute(
+                'SELECT id, nombres, apellidos, cedula_identidad, correo, usuario FROM Usuarios WHERE usuario = ? AND password = ?',
+                (usuario, hashed)
+            )
+            row = c.fetchone()
+            conn.close()
+
+            if row:
+                user_data = {
+                    'id': row[0], 'nombres': row[1], 'apellidos': row[2],
+                    'cedula_identidad': row[3], 'correo': row[4], 'usuario': row[5]
+                }
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'success', 'user': user_data}).encode('utf-8'))
+            else:
+                self.send_response(401)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': 'Usuario o contraseña incorrectos.'}).encode('utf-8'))
+            return
+
         elif self.path == '/api/asistencias':
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
@@ -162,6 +209,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(response).encode('utf-8'))
+
+        else:
+            # Ruta POST desconocida — evita que el navegador quede colgado
+            self.send_response(404)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'status': 'error', 'message': 'Ruta no encontrada.'}).encode('utf-8'))
 
     def do_DELETE(self):
         parsed_path = urlparse(self.path)
