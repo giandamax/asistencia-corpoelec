@@ -40,12 +40,31 @@ export default function Reportes() {
             cedula: found.cedula_identidad,
           });
         }
-      } catch (_) {
+      } catch (err) {
+        console.error(err);
         // silently ignore
       }
     };
     fetchEmpleado();
   }, [empleadoId]);
+
+  // ── Fetch attendance list ──────────────────────────────────────────────────
+  const fetchAsistencias = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/asistencias');
+      let data = await res.json();
+      if (filterDate) {
+        data = data.filter(a => a.fecha === filterDate);
+      }
+      setAsistencias(data);
+    } catch (err) {
+      console.error(err);
+      showAlert('Error cargando asistencias', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ── Auto-register attendance when QR token is present ─────────────────────
   useEffect(() => {
@@ -71,7 +90,8 @@ export default function Reportes() {
           setRegistroStatus('error');
           setRegistroMsg(result.message || 'Error al registrar asistencia.');
         }
-      } catch (_) {
+      } catch (err) {
+        console.error(err);
         setRegistroStatus('error');
         setRegistroMsg('Error de conexión con el servidor.');
       }
@@ -87,22 +107,7 @@ export default function Reportes() {
     }
   }, [asistencias, empleadoId]);
 
-  // ── Fetch attendance list ──────────────────────────────────────────────────
-  const fetchAsistencias = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/asistencias');
-      let data = await res.json();
-      if (filterDate) {
-        data = data.filter(a => a.fecha === filterDate);
-      }
-      setAsistencias(data);
-    } catch (err) {
-      showAlert('Error cargando asistencias', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   // Initial load + filter change
   useEffect(() => {
@@ -147,9 +152,10 @@ export default function Reportes() {
         const data = await res.json().catch(() => ({}));
         showAlert(data.message || `Error del servidor (${res.status})`, 'error');
       }
-    } catch (_) {
-      showAlert('Error de conexión. ¿Está corriendo el backend?', 'error');
-    } finally {
+    } catch (err) {
+        console.error(err);
+        showAlert('Error de conexión. ¿Está corriendo el backend?', 'error');
+      } finally {
       setClearing(false);
     }
   };

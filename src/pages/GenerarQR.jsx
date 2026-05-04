@@ -55,6 +55,7 @@ export default function GenerarQR() {
           }
         }
       } catch (err) {
+        console.error(err);
         showAlert('Error cargando usuarios', 'error');
       }
     };

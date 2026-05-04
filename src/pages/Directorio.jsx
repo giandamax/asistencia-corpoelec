@@ -33,6 +33,7 @@ export default function Directorio() {
       const data = await res.json();
       setUsuarios(data);
     } catch (err) {
+      console.error(err);
       showAlert('Error cargando directorio', 'error');
     } finally {
       setLoading(false);
@@ -65,6 +66,7 @@ export default function Directorio() {
         showAlert(result.message, 'error');
       }
     } catch (err) {
+      console.error(err);
       showAlert('Error de conexión al servidor', 'error');
     }
   };
@@ -83,6 +85,7 @@ export default function Directorio() {
         showAlert(result.message, 'error');
       }
     } catch (err) {
+      console.error(err);
       showAlert('Error de conexión al servidor', 'error');
     } finally {
       setDeleting(false);

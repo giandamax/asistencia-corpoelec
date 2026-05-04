@@ -80,7 +80,7 @@ export default function Scan() {
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] overflow-hidden border border-slate-100">
 
         {/* Color bar top */}
-        <div className={`h-2 w-full ${isLoading ? 'bg-slate-200 animate-pulse' : isSuccess ? 'bg-green-500' : 'bg-primary'}`} />
+        <div className={`h-2 w-full ${isLoading ? 'bg-slate-200 animate-pulse' : isSuccess ? 'bg-green-500' : status === 'warning' ? 'bg-amber-500' : 'bg-primary'}`} />
 
         <div className="px-8 py-10 flex flex-col items-center text-center">
 

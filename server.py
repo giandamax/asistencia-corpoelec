@@ -73,13 +73,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             conn = sqlite3.connect('asistencia.db')
             c = conn.cursor()
             query = '''
-                SELECT u.nombres, u.apellidos, u.cedula_identidad, a.fecha_registro, a.hora_entrada, a.metodo_verificacion
+                SELECT u.nombres, u.apellidos, u.cedula_identidad, a.fecha_registro, a.hora_entrada, a.metodo_verificacion, a.usuario_id
                 FROM Asistencias a
                 JOIN Usuarios u ON a.usuario_id = u.id
                 ORDER BY a.fecha_registro DESC, a.hora_entrada DESC
             '''
             c.execute(query)
-            asistencias = [{'nombres': row[0], 'apellidos': row[1], 'cedula': row[2], 'fecha': row[3], 'hora': row[4], 'metodo': row[5]} for row in c.fetchall()]
+            asistencias = [{'nombres': row[0], 'apellidos': row[1], 'cedula': row[2], 'fecha': row[3], 'hora': row[4], 'metodo': row[5], 'usuario_id': row[6]} for row in c.fetchall()]
             conn.close()
             self.wfile.write(json.dumps(asistencias).encode('utf-8'))
 
@@ -91,8 +91,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.path = '/dist' + self.path
             else:
                 # Ruta de React (/, /login, /dashboard, /reportes, etc.) → SPA
-                self.path = '/dist/index.html'
-            super().do_GET()
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html; charset=utf-8')
+                self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                self.end_headers()
+                try:
+                    with open(os.path.join(os.getcwd(), 'dist', 'index.html'), 'rb') as f:
+                        self.wfile.write(f.read())
+                except FileNotFoundError:
+                    self.wfile.write(b"Error: dist/index.html no encontrado. Ejecute 'npm run build'.")
 
     def log_message(self, format, *args):
         # Suprimir logs verbosos de archivos estáticos

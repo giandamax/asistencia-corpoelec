@@ -28,7 +28,7 @@ function AppRoutes() {
 
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+        element={<Login />}
       />
       <Route
         path="/"

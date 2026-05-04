@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Zap, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // Si hay URL de origen guardada (ej: desde escaneo QR) volver a ella; sino al dashboard
@@ -16,6 +16,12 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, from]);
 
   const handleChange = (e) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -38,7 +44,6 @@ export default function Login() {
       const data = await res.json();
       if (res.ok) {
         login(data.user);
-        navigate(from, { replace: true });
       } else {
         setError(data.message || 'Usuario o contraseña incorrectos.');
       }

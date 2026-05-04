@@ -201,7 +201,7 @@ export default function Layout() {
       </aside>
 
       {/* ── Top Header ── */}
-      <header className="fixed top-0 z-40 w-full bg-white/90 backdrop-blur-xl shadow-[0_4px_20px_rgba(181,0,11,0.06)] flex justify-between items-center px-4 sm:px-8 py-4 no-print">
+      <header className="fixed top-0 right-0 z-40 w-full md:w-[calc(100%-16rem)] bg-white/90 backdrop-blur-xl shadow-[0_4px_20px_rgba(181,0,11,0.06)] flex justify-between items-center px-4 sm:px-8 py-4 no-print transition-all duration-300">
         <div className="flex items-center gap-3">
           {/* Hamburger (mobile only) */}
           <button
