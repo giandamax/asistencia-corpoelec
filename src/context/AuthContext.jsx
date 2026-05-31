@@ -22,8 +22,17 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  // Actualiza los datos del usuario en sesión sin necesidad de re-login
+  const updateUser = useCallback((newData) => {
+    setUser(prev => {
+      const updated = { ...prev, ...newData };
+      sessionStorage.setItem('corpoelec_user', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

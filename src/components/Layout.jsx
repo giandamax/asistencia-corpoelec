@@ -190,9 +190,17 @@ export default function Layout({ children }) {
         <div className="px-6 pb-8 mt-auto">
           <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-                {user?.nombres?.charAt(0)}{user?.apellidos?.charAt(0)}
-              </div>
+              {user?.foto_perfil ? (
+                <img
+                  src={user.foto_perfil}
+                  alt="Foto de perfil"
+                  className="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2 border-primary/20"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                  {user?.nombres?.charAt(0)}{user?.apellidos?.charAt(0)}
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="text-sm font-bold text-on-surface truncate">{user?.nombres} {user?.apellidos}</p>
                 <p className="text-xs text-primary font-semibold truncate">@{user?.usuario}</p>
@@ -262,9 +270,17 @@ export default function Layout({ children }) {
                 <span className="text-xs font-bold text-white">{user?.nombres} {user?.apellidos}</span>
                 <span className="text-[9px] text-white/80 font-bold uppercase tracking-wider">@{user?.usuario}</span>
               </div>
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xs border border-white/30">
-                {user?.nombres?.charAt(0)}{user?.apellidos?.charAt(0)}
-              </div>
+              {user?.foto_perfil ? (
+                <img
+                  src={user.foto_perfil}
+                  alt="Foto de perfil"
+                  className="w-8 h-8 rounded-full object-cover border-2 border-white/30"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-xs border border-white/30">
+                  {user?.nombres?.charAt(0)}{user?.apellidos?.charAt(0)}
+                </div>
+              )}
               <button
                 onClick={logout}
                 title="Cerrar sesión"

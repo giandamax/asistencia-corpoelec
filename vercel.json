@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    { "source": "/api/asistencias", "destination": "/api/asistencias" },
+    { "source": "/api/usuarios",    "destination": "/api/usuarios"    },
+    { "source": "/api/login",       "destination": "/api/login"       },
+    { "source": "/api/config/test", "destination": "/api/config_test" },
+    { "source": "/api/config",      "destination": "/api/config"      },
+    { "source": "/api/perfil",      "destination": "/api/perfil"      },
+    { "source": "/api/info",        "destination": "/api/info"        },
+    { "source": "/(.*)",            "destination": "/index.html"      }
+  ]
+}

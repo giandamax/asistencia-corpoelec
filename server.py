@@ -98,9 +98,15 @@ def init_db():
             cedula_identidad TEXT UNIQUE,
             correo TEXT,
             usuario TEXT UNIQUE,
-            password TEXT
+            password TEXT,
+            foto_perfil TEXT
         )
     ''')
+    # Migración: agregar foto_perfil si no existe en versiones previas de la DB
+    try:
+        c.execute('ALTER TABLE Usuarios ADD COLUMN foto_perfil TEXT')
+    except Exception:
+        pass  # La columna ya existe
     c.execute('''
         CREATE TABLE IF NOT EXISTS Gestion_QR (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -162,8 +168,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             conn = sqlite3.connect('asistencia.db')
             c = conn.cursor()
-            c.execute('SELECT id, nombres, apellidos, cedula_identidad, correo, usuario FROM Usuarios')
-            usuarios = [{'id': row[0], 'nombres': row[1], 'apellidos': row[2], 'cedula_identidad': row[3], 'correo': row[4], 'usuario': row[5]} for row in c.fetchall()]
+            c.execute('SELECT id, nombres, apellidos, cedula_identidad, correo, usuario, foto_perfil FROM Usuarios')
+            usuarios = [{'id': row[0], 'nombres': row[1], 'apellidos': row[2], 'cedula_identidad': row[3], 'correo': row[4], 'usuario': row[5], 'foto_perfil': row[6]} for row in c.fetchall()]
             conn.close()
             self.wfile.write(json.dumps(usuarios).encode('utf-8'))
         elif parsed_path.path == '/api/asistencias':
@@ -199,7 +205,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 config['email_password'] = '********'
             self.wfile.write(json.dumps(config).encode('utf-8'))
         else:
-            super().do_GET()
+            # Ruta GET no reconocida — devolver 404 JSON limpio
+            self.send_response(404)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'status': 'error', 'message': 'Ruta no encontrada.'}).encode('utf-8'))
 
     def do_POST(self):
         if self.path == '/api/usuarios':
@@ -252,7 +262,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             conn = sqlite3.connect('asistencia.db')
             c = conn.cursor()
             c.execute(
-                'SELECT id, nombres, apellidos, cedula_identidad, correo, usuario FROM Usuarios WHERE usuario = ? AND password = ?',
+                'SELECT id, nombres, apellidos, cedula_identidad, correo, usuario, foto_perfil FROM Usuarios WHERE usuario = ? AND password = ?',
                 (usuario, hashed)
             )
             row = c.fetchone()
@@ -261,7 +271,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if row:
                 user_data = {
                     'id': row[0], 'nombres': row[1], 'apellidos': row[2],
-                    'cedula_identidad': row[3], 'correo': row[4], 'usuario': row[5]
+                    'cedula_identidad': row[3], 'correo': row[4], 'usuario': row[5],
+                    'foto_perfil': row[6]
                 }
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
@@ -498,8 +509,70 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({'status': 'error', 'message': friendly_message}).encode('utf-8'))
+        elif self.path == '/api/perfil':
+            # Endpoint para actualizar perfil del usuario (nombres, apellidos, correo, foto, password)
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            user_id = data.get('id')
+            if not user_id:
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'status': 'error', 'message': 'ID de usuario requerido.'}).encode('utf-8'))
+                return
+
+            conn = sqlite3.connect('asistencia.db')
+            c = conn.cursor()
+            try:
+                fields = []
+                values = []
+                if 'nombres' in data:
+                    fields.append('nombres = ?')
+                    values.append(data['nombres'])
+                if 'apellidos' in data:
+                    fields.append('apellidos = ?')
+                    values.append(data['apellidos'])
+                if 'correo' in data:
+                    fields.append('correo = ?')
+                    values.append(data['correo'])
+                if 'foto_perfil' in data:
+                    fields.append('foto_perfil = ?')
+                    values.append(data['foto_perfil'])
+                if 'password' in data and data['password']:
+                    fields.append('password = ?')
+                    values.append(hash_password(data['password']))
+
+                if not fields:
+                    response = {'status': 'error', 'message': 'No hay campos para actualizar.'}
+                    status_code = 400
+                else:
+                    values.append(user_id)
+                    c.execute(f'UPDATE Usuarios SET {", ".join(fields)} WHERE id = ?', values)
+                    conn.commit()
+                    # Devolver datos actualizados del usuario
+                    c.execute('SELECT id, nombres, apellidos, cedula_identidad, correo, usuario, foto_perfil FROM Usuarios WHERE id = ?', (user_id,))
+                    row = c.fetchone()
+                    user_data = {
+                        'id': row[0], 'nombres': row[1], 'apellidos': row[2],
+                        'cedula_identidad': row[3], 'correo': row[4], 'usuario': row[5],
+                        'foto_perfil': row[6]
+                    }
+                    response = {'status': 'success', 'message': 'Perfil actualizado correctamente.', 'user': user_data}
+                    status_code = 200
+            except Exception as e:
+                response = {'status': 'error', 'message': str(e)}
+                status_code = 500
+            finally:
+                conn.close()
+
+            self.send_response(status_code)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode('utf-8'))
         else:
-            # Ruta POST desconocida — evita que el navegador quede colgadoue el navegador quede colgado
+            # Ruta POST desconocida — evita que el navegador quede colgado
             self.send_response(404)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -573,9 +646,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
+    def log_message(self, format, *args):
+        """Override para suprimir los logs del servidor HTTP por defecto."""
+        pass
+
 if __name__ == '__main__':
     init_db()
-    # Usar ThreadingHTTPServer para manejar solicitudes de forma concurrente sin bloquearse
     with http.server.ThreadingHTTPServer(("", PORT), Handler) as httpd:
         print(f"Servidor Corpoelec Asistencia corriendo en http://localhost:{PORT}")
         httpd.serve_forever()

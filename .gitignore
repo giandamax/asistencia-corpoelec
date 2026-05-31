@@ -28,3 +28,11 @@ __pycache__/
 *.db
 *.sqlite3
 asistencia.db
+extract.py
+restore.py
+migrate_passwords.py
+
+# Environment variables (never commit!)
+.env
+.env.local
+.env.production

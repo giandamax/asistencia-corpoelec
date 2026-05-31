@@ -5,12 +5,6 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: true,   // Escucha en la IP de red local (accesible desde móviles)
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      }
-    }
+    host: true,   // Escucha en la IP de red local (accesible desde móviles en modo dev)
   }
 })
