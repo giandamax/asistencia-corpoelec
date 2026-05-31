@@ -7,6 +7,7 @@
     { "source": "/api/config",      "destination": "/api/config"      },
     { "source": "/api/perfil",      "destination": "/api/perfil"      },
     { "source": "/api/info",        "destination": "/api/info"        },
+    { "source": "/api/reset_password", "destination": "/api/reset_password" },
     { "source": "/(.*)",            "destination": "/index.html"      }
   ]
 }

@@ -72,6 +72,15 @@ def init_db():
     cur.execute("INSERT INTO Configuracion (clave, valor) VALUES ('email_habilitado','0') ON CONFLICT DO NOTHING")
     cur.execute("INSERT INTO Configuracion (clave, valor) VALUES ('email_remitente','') ON CONFLICT DO NOTHING")
     cur.execute("INSERT INTO Configuracion (clave, valor) VALUES ('email_password','') ON CONFLICT DO NOTHING")
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS reset_tokens (
+            id SERIAL PRIMARY KEY,
+            usuario_id INTEGER REFERENCES Usuarios(id) ON DELETE CASCADE,
+            token TEXT UNIQUE NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
+            used BOOLEAN DEFAULT FALSE
+        )
+    """)
     conn.commit()
     cur.close()
     conn.close()

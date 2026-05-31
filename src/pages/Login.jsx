@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Zap, Eye, EyeOff, LogIn, AlertCircle,
-  UserPlus, CheckCircle2, ChevronRight,
+  Eye, EyeOff, LogIn, AlertCircle,
+  UserPlus, CheckCircle2, ChevronRight, Mail, ArrowLeft,
 } from 'lucide-react';
 import CorpoelecLogo from '../components/CorpoelecLogo';
 
@@ -11,7 +11,7 @@ const INPUT_CLASS =
   'w-full px-5 py-4 bg-surface-container-low text-on-surface rounded-xl font-medium outline-none border-0 border-b-2 border-transparent focus:border-primary transition-colors placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f3f4f5] [&:-webkit-autofill]:[color:#191c1d]';
 
 // ─── Formulario de Login ───────────────────────────────────────────────────
-function LoginForm({ onSwitch }) {
+function LoginForm({ onSwitch, onForgot }) {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ usuario: '', password: '' });
@@ -34,7 +34,6 @@ function LoginForm({ onSwitch }) {
     }
     setLoading(true);
     setSlowConn(false);
-    // Aviso si tarda más de 6 segundos (cold start de Vercel)
     slowTimer.current = setTimeout(() => setSlowConn(true), 6000);
     try {
       const res = await fetch('/api/login', {
@@ -117,6 +116,15 @@ function LoginForm({ onSwitch }) {
               {showPass ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onForgot}
+              className="text-xs text-primary font-semibold hover:underline transition-colors"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
         </div>
 
         <button
@@ -141,7 +149,6 @@ function LoginForm({ onSwitch }) {
         </button>
       </form>
 
-      {/* Switch to Register */}
       <div className="mt-8 pt-6 border-t border-slate-100 text-center">
         <p className="text-sm text-on-surface-variant font-medium">
           ¿No tienes una cuenta?{' '}
@@ -153,6 +160,90 @@ function LoginForm({ onSwitch }) {
           </button>
         </p>
       </div>
+    </>
+  );
+}
+
+// ─── Formulario de Recuperación ───────────────────────────────────────────
+function ForgotPasswordForm({ onBack }) {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!email) { setError('Ingresa tu correo electrónico.'); return; }
+    setLoading(true); setError('');
+    try {
+      const res = await fetch('/api/reset_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (res.ok) setSent(true);
+      else setError(data.message || 'Error al enviar.');
+    } catch {
+      setError('Error de conexión.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <button onClick={onBack} className="flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-primary font-semibold mb-6 transition-colors">
+        <ArrowLeft size={14} /> Volver al login
+      </button>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Mail size={22} className="text-primary" />
+        </div>
+        <div>
+          <h2 className="text-xl font-black headline-font text-on-surface leading-tight">¿Olvidaste tu contraseña?</h2>
+          <p className="text-xs text-on-surface-variant font-medium">Te enviamos un enlace de recuperación</p>
+        </div>
+      </div>
+
+      {sent ? (
+        <div className="flex flex-col items-center text-center py-4">
+          <CheckCircle2 size={48} className="text-green-500 mb-4" />
+          <p className="font-bold text-on-surface mb-1">¡Correo enviado!</p>
+          <p className="text-sm text-on-surface-variant">Revisa tu bandeja de entrada y la carpeta de spam. El enlace expira en 1 hora.</p>
+          <button onClick={onBack} className="mt-6 px-6 py-3 bg-primary text-white font-bold rounded-xl text-sm">
+            Volver al login
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3">
+              <AlertCircle size={16} className="flex-shrink-0" />
+              <p className="text-sm font-semibold">{error}</p>
+            </div>
+          )}
+          <div className="space-y-1">
+            <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest">Correo electrónico</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => { setEmail(e.target.value); setError(''); }}
+              placeholder="tu@correo.com"
+              className={INPUT_CLASS}
+              autoFocus
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary-container transition-all shadow-[0_10px_30px_rgba(181,0,11,0.25)] flex items-center justify-center gap-2 disabled:opacity-70"
+          >
+            <Mail size={18} />
+            {loading ? 'Enviando...' : 'Enviar enlace de recuperación'}
+          </button>
+        </form>
+      )}
     </>
   );
 }
@@ -202,7 +293,6 @@ function RegisterForm({ onSwitch }) {
 
       if (res.ok) {
         setSuccess('¡Cuenta creada! Iniciando sesión...');
-        // Auto-login after successful registration
         const loginRes = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -331,7 +421,6 @@ function RegisterForm({ onSwitch }) {
         </button>
       </form>
 
-      {/* Switch to Login */}
       <div className="mt-6 pt-5 border-t border-slate-100 text-center">
         <p className="text-sm text-on-surface-variant font-medium">
           ¿Ya tienes una cuenta?{' '}
@@ -349,7 +438,7 @@ function RegisterForm({ onSwitch }) {
 
 // ─── Página Principal ──────────────────────────────────────────────────────
 export default function Login() {
-  const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot'
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
@@ -385,36 +474,42 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Toggle Pills - Glassmorphism */}
-        <div className="flex bg-white/10 backdrop-blur-md rounded-2xl p-1 mb-6 border border-white/10 shadow-inner">
-          <button
-            onClick={() => setMode('login')}
-            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-              mode === 'login'
-                ? 'bg-white shadow-md text-primary'
-                : 'text-white/70 hover:text-white'
-            }`}
-          >
-            <LogIn size={16} /> Iniciar Sesión
-          </button>
-          <button
-            onClick={() => setMode('register')}
-            className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-              mode === 'register'
-                ? 'bg-white shadow-md text-primary'
-                : 'text-white/70 hover:text-white'
-            }`}
-          >
-            <UserPlus size={16} /> Registrarse
-          </button>
-        </div>
+        {/* Toggle Pills — se ocultan en modo forgot */}
+        {mode !== 'forgot' && (
+          <div className="flex bg-white/10 backdrop-blur-md rounded-2xl p-1 mb-6 border border-white/10 shadow-inner">
+            <button
+              onClick={() => setMode('login')}
+              className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                mode === 'login'
+                  ? 'bg-white shadow-md text-primary'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              <LogIn size={16} /> Iniciar Sesión
+            </button>
+            <button
+              onClick={() => setMode('register')}
+              className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                mode === 'register'
+                  ? 'bg-white shadow-md text-primary'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              <UserPlus size={16} /> Registrarse
+            </button>
+          </div>
+        )}
 
         {/* Card */}
         <div className="bg-white rounded-3xl shadow-[0_45px_100px_rgba(0,0,0,0.25)] border border-slate-100 p-10">
-          {mode === 'login'
-            ? <LoginForm onSwitch={() => setMode('register')} />
-            : <RegisterForm onSwitch={() => setMode('login')} />
-          }
+          {mode === 'login' && (
+            <LoginForm
+              onSwitch={() => setMode('register')}
+              onForgot={() => setMode('forgot')}
+            />
+          )}
+          {mode === 'register' && <RegisterForm onSwitch={() => setMode('login')} />}
+          {mode === 'forgot' && <ForgotPasswordForm onBack={() => setMode('login')} />}
         </div>
 
         <p className="text-center text-xs text-white/40 font-medium mt-6">

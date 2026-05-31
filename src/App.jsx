@@ -6,6 +6,7 @@ import GenerarQR from './pages/GenerarQR';
 import Reportes from './pages/Reportes';
 import Configuracion from './pages/Configuracion';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import { AlertProvider } from './components/AlertProvider';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
@@ -60,6 +61,8 @@ function AppRoutes() {
       </Route>
       {/* Route for Reportes, handled dynamically */}
       <Route path="/reportes" element={<ReportesRouteWrapper />} />
+      {/* Reset password (public) */}
+      <Route path="/reset-password" element={<ResetPassword />} />
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
