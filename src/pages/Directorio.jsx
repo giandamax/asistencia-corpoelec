@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, UserPlus, X, QrCode, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, UserPlus, X, QrCode, Trash2, AlertTriangle, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../components/AlertProvider';
+import { useAuth } from '../context/AuthContext';
 import clsx from 'clsx';
 
 export default function Directorio() {
+  const { user } = useAuth();
+  // Solo admin o giandamax pueden eliminar y registrar empleados
+  const isAdmin = user?.usuario === 'admin' || user?.usuario === 'giandamax';
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -135,14 +139,17 @@ export default function Directorio() {
               </button>
             )}
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-primary text-white hover:bg-primary-container transition-all font-bold rounded-xl shadow-[0_10px_30px_rgba(181,0,11,0.2)] whitespace-nowrap text-sm"
-          >
-            <UserPlus size={16} />
-            <span className="hidden sm:inline">Registrar Nuevo Empleado</span>
-            <span className="sm:hidden">Nuevo</span>
-          </button>
+          {/* Solo admin puede registrar */}
+          {isAdmin && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-primary text-white hover:bg-primary-container transition-all font-bold rounded-xl shadow-[0_10px_30px_rgba(181,0,11,0.2)] whitespace-nowrap text-sm"
+            >
+              <UserPlus size={16} />
+              <span className="hidden sm:inline">Registrar Nuevo Empleado</span>
+              <span className="sm:hidden">Nuevo</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -187,9 +194,11 @@ export default function Directorio() {
                     <button onClick={() => navigate('/qr', { state: { userId: u.id } })} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary-container/20 text-on-secondary-container hover:bg-secondary-container transition-all font-semibold text-xs" title="Ver QR">
                       <QrCode size={14} /> Ver QR
                     </button>
-                    <button onClick={() => setDeleteTarget(u)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all font-semibold text-xs" title="Eliminar">
-                      <Trash2 size={14} /> Eliminar
-                    </button>
+                    {isAdmin && (
+                      <button onClick={() => setDeleteTarget(u)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all font-semibold text-xs" title="Eliminar">
+                        <Trash2 size={14} /> Eliminar
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -232,12 +241,14 @@ export default function Directorio() {
                   >
                     <QrCode size={14} /> Ver Código QR
                   </button>
-                  <button
-                    onClick={() => setDeleteTarget(u)}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-xs"
-                  >
-                    <Trash2 size={14} /> Eliminar
-                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setDeleteTarget(u)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-50 text-red-600 font-bold text-xs"
+                    >
+                      <Trash2 size={14} /> Eliminar
+                    </button>
+                  )}
                 </div>
               </div>
             );
