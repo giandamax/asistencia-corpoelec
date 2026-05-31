@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   Zap, Eye, EyeOff, LogIn, AlertCircle,
@@ -12,10 +13,13 @@ const INPUT_CLASS =
 // ─── Formulario de Login ───────────────────────────────────────────────────
 function LoginForm({ onSwitch }) {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ usuario: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [slowConn, setSlowConn] = useState(false);
+  const slowTimer = useRef(null);
 
   const handleChange = (e) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -29,6 +33,9 @@ function LoginForm({ onSwitch }) {
       return;
     }
     setLoading(true);
+    setSlowConn(false);
+    // Aviso si tarda más de 6 segundos (cold start de Vercel)
+    slowTimer.current = setTimeout(() => setSlowConn(true), 6000);
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
@@ -38,12 +45,15 @@ function LoginForm({ onSwitch }) {
       const data = await res.json();
       if (res.ok) {
         login(data.user);
+        navigate('/dashboard', { replace: true });
       } else {
         setError(data.message || 'Usuario o contraseña incorrectos.');
       }
     } catch {
-      setError('No se pudo conectar con el servidor. ¿Está corriendo el backend?');
+      setError('No se pudo conectar con el servidor.');
     } finally {
+      clearTimeout(slowTimer.current);
+      setSlowConn(false);
       setLoading(false);
     }
   };
@@ -59,6 +69,13 @@ function LoginForm({ onSwitch }) {
         <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-6 animate-fade-in">
           <AlertCircle size={18} className="flex-shrink-0" />
           <p className="text-sm font-semibold">{error}</p>
+        </div>
+      )}
+
+      {slowConn && !error && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl px-4 py-3 mb-6">
+          <AlertCircle size={18} className="flex-shrink-0" />
+          <p className="text-sm font-semibold">Iniciando servidor... espera un momento ☕</p>
         </div>
       )}
 
