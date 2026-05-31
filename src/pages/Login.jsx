@@ -352,12 +352,23 @@ export default function Login() {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#002b67] via-[#001d47] to-[#001026] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorative elements */}
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
+      {/* Imagen de fondo difuminada */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url(/login-bg.png)',
+          filter: 'blur(3px) brightness(0.45)',
+          transform: 'scale(1.05)',
+        }}
+      />
+      {/* Overlay degradado para profundidad */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#001026]/60 via-[#001d47]/50 to-[#002b67]/70" />
+
+      {/* Partículas decorativas */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-white/[0.02] rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-white/[0.02] rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-container/[0.03] rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
       <div className={`w-full animate-fade-in relative transition-all duration-300 ${mode === 'register' ? 'max-w-lg' : 'max-w-md'} z-10`}>
