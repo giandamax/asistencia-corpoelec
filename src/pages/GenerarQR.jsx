@@ -7,11 +7,14 @@ import CorpoelecLogo from '../components/CorpoelecLogo';
 
 // Builds the URL that the QR will encode
 const buildQrUrl = (userId, cedula, serverIp) => {
+  const token = `USER_${userId}_${cedula}`;
+  // Only use the local network IP when running on localhost and the IP is a LAN address
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isLanIp = serverIp && /^(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(serverIp);
   const localPort = window.location.port || '5173';
-  const base = serverIp && serverIp !== '127.0.0.1'
+  const base = isLocalhost && isLanIp
     ? `http://${serverIp}:${localPort}`
     : window.location.origin;
-  const token = `USER_${userId}_${cedula}`;
   return `${base}/reportes?empleado=${userId}&token=${encodeURIComponent(token)}`;
 };
 

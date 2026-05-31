@@ -36,3 +36,4 @@ migrate_passwords.py
 .env
 .env.local
 .env.production
+.vercel
