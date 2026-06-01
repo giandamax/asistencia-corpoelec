@@ -29,13 +29,23 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ empleados: 0, asistenciasHoy: 0 });
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [bgIndex, setBgIndex] = useState(0);
  
+  const BANNERS = [
+    '/dashboard-bg-1.jpg',
+    '/dashboard-bg-2.jpg',
+    '/dashboard-bg-3.jpg',
+    '/dashboard-bg-4.jpg'
+  ];
+
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const bgTimer = setInterval(() => setBgIndex(prev => (prev + 1) % BANNERS.length), 5000);
+    return () => {
+      clearInterval(timer);
+      clearInterval(bgTimer);
+    };
+  }, [BANNERS.length]);
  
   const formatHoraNormal = (date) => {
     let hours = date.getHours();
@@ -72,31 +82,37 @@ export default function Dashboard() {
   }, []);
  
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Banner de Bienvenida con ondas fluidas corporativas (Azul y Blanco) */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#002b67] to-[#004b93] rounded-[2.5rem] p-8 md:p-12 text-white shadow-[0_20px_50px_rgba(0,43,103,0.15)] flex flex-col md:flex-row items-center justify-between gap-8">
-        {/* Ondas decorativas de fondo */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path d="M0,50 C30,70 70,30 100,50 L100,100 L0,100 Z" fill="#ffffff" />
-            <path d="M0,30 C50,60 50,20 100,40 L100,100 L0,100 Z" fill="#ffffff" opacity="0.5" />
-          </svg>
-        </div>
+    <div className="space-y-8 max-w-6xl mx-auto relative">
+      {/* Banner de Bienvenida con Slideshow de Fotos Reales */}
+      <div className="relative overflow-hidden rounded-[2.5rem] p-8 md:p-12 text-white shadow-[0_20px_50px_rgba(0,43,103,0.3)] flex flex-col md:flex-row items-center justify-between gap-8 min-h-[340px]">
+        
+        {/* Slideshow Images */}
+        {BANNERS.map((img, i) => (
+          <div
+            key={img}
+            className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out ${i === bgIndex ? 'opacity-100' : 'opacity-0'}`}
+            style={{ backgroundImage: `url(${img})` }}
+          />
+        ))}
+
+        {/* Gradiente Oscuro para Legibilidad */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#001026]/95 via-[#002b67]/80 to-[#e30613]/20 pointer-events-none" />
+        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
  
-        <div className="relative space-y-4 max-w-lg z-10">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs font-bold uppercase tracking-wider border border-white/10">
+        <div className="relative space-y-4 max-w-lg z-10 drop-shadow-lg">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-xs font-bold uppercase tracking-wider border border-white/20 backdrop-blur-md">
             ⚡ Sistema Pulso Eléctrico
           </span>
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight headline-font">
             Panel de Control de Asistencia
           </h1>
-          <p className="text-white/80 font-medium text-sm sm:text-base leading-relaxed">
+          <p className="text-white/90 font-medium text-sm sm:text-base leading-relaxed drop-shadow-md">
             Gestión en tiempo real de accesos, credenciales inteligentes y reportes de asistencia para el personal de CORPOELEC.
           </p>
         </div>
  
         {/* Insignia Corpoelec Activa integrada en el Banner */}
-        <CorpoelecActivaBadge className="z-10 scale-100 md:scale-105" />
+        <CorpoelecActivaBadge className="z-10 scale-100 md:scale-105 shadow-[0_20px_40px_rgba(0,0,0,0.4)]" />
       </div>
  
       {/* Grid de Estadísticas Rápidas */}
