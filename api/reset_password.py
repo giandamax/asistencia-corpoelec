@@ -6,6 +6,9 @@ POST {"token": "...", "new_password": "..."}  → valida token y actualiza passw
 import json
 import secrets
 import os
+import sys
+sys.path.insert(0, os.path.dirname(__file__))
+
 from datetime import datetime, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
