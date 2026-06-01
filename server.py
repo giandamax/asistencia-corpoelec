@@ -4,7 +4,8 @@ import sqlite3
 import json
 import os
 import hashlib
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs
 
 def hash_password(password: str) -> str:
@@ -130,6 +131,16 @@ def init_db():
         CREATE TABLE IF NOT EXISTS Configuracion (
             clave TEXT PRIMARY KEY,
             valor TEXT
+        )
+    ''')
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER,
+            token TEXT UNIQUE NOT NULL,
+            expires_at DATETIME NOT NULL,
+            used INTEGER DEFAULT 0,
+            FOREIGN KEY(usuario_id) REFERENCES Usuarios(id) ON DELETE CASCADE
         )
     ''')
     # Insertar valores por defecto para la configuración de correo si no existen
@@ -571,6 +582,110 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(response).encode('utf-8'))
+        elif self.path == '/api/reset_password':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+            
+            conn = sqlite3.connect('asistencia.db')
+            c = conn.cursor()
+            try:
+                if "email" in data and "token" not in data:
+                    email = data["email"].strip().lower()
+                    c.execute('SELECT id, nombres FROM Usuarios WHERE LOWER(correo)=?', (email,))
+                    row = c.fetchone()
+                    
+                    if not row:
+                        response = {"status": "success", "message": "Si el correo existe, recibirás un enlace."}
+                        status_code = 200
+                    else:
+                        user_id, nombres = row
+                        token = secrets.token_urlsafe(32)
+                        expires = datetime.now() + timedelta(hours=1)
+                        
+                        c.execute("DELETE FROM reset_tokens WHERE usuario_id=?", (user_id,))
+                        c.execute("INSERT INTO reset_tokens (usuario_id, token, expires_at) VALUES (?, ?, ?)",
+                                  (user_id, token, expires.strftime("%Y-%m-%d %H:%M:%S")))
+                        conn.commit()
+                        
+                        c.execute("SELECT clave, valor FROM Configuracion")
+                        cfg = dict(c.fetchall())
+                        remitente = cfg.get("email_remitente", "")
+                        pwd_app = cfg.get("email_password", "")
+                        
+                        # Puerto frontend local es 5173 en desarrollo o puede estar sirviendo desde 8000
+                        reset_url = f"http://localhost:5173/reset-password?token={token}"
+                        
+                        if remitente and pwd_app:
+                            msg = MIMEMultipart("alternative")
+                            msg["Subject"] = "Recuperación de contraseña — CORPOELEC"
+                            msg["From"] = remitente
+                            msg["To"] = email
+                            html = f"""
+                            <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;background:#f9f9f9;padding:32px;border-radius:12px">
+                              <h2 style="color:#b5000b;margin-bottom:4px">CORPOELEC</h2>
+                              <h3 style="color:#1a1a1a">Restablecer tu contraseña</h3>
+                              <p>Hola <strong>{nombres}</strong>,</p>
+                              <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta.<br>
+                                 Este enlace expira en <strong>1 hora</strong>.</p>
+                              <a href="{reset_url}"
+                                 style="display:inline-block;margin:20px 0;padding:14px 28px;background:#b5000b;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold">
+                                Restablecer contraseña
+                              </a>
+                              <p style="color:#666;font-size:13px">Si no solicitaste esto, ignora este correo.<br>
+                                 O copia y pega este enlace: <br><a href="{reset_url}">{reset_url}</a></p>
+                            </div>"""
+                            msg.attach(MIMEText(html, "html"))
+                            try:
+                                send_email_via_gmail(remitente, pwd_app, email, msg.as_string())
+                            except Exception as e:
+                                print(f"Error al enviar correo de recuperación: {e}")
+                                
+                        response = {"status": "success", "message": "Si el correo existe, recibirás un enlace en los próximos minutos."}
+                        status_code = 200
+                        
+                elif "token" in data and "new_password" in data:
+                    token = data["token"].strip()
+                    new_pass = data["new_password"]
+                    
+                    if len(new_pass) < 6:
+                        response = {"status": "error", "message": "La contraseña debe tener al menos 6 caracteres."}
+                        status_code = 400
+                    else:
+                        c.execute("SELECT usuario_id, expires_at, used FROM reset_tokens WHERE token=?", (token,))
+                        row = c.fetchone()
+                        
+                        if not row:
+                            response = {"status": "error", "message": "Enlace inválido o expirado."}
+                            status_code = 400
+                        else:
+                            user_id, expires_str, used = row
+                            expires_at = datetime.strptime(expires_str, "%Y-%m-%d %H:%M:%S")
+                            
+                            if used or datetime.now() > expires_at:
+                                response = {"status": "error", "message": "El enlace ya fue usado o expiró. Solicita uno nuevo."}
+                                status_code = 400
+                            else:
+                                hashed = hash_password(new_pass)
+                                c.execute("UPDATE Usuarios SET password=? WHERE id=?", (hashed, user_id))
+                                c.execute("UPDATE reset_tokens SET used=1 WHERE token=?", (token,))
+                                conn.commit()
+                                response = {"status": "success", "message": "¡Contraseña actualizada! Ya puedes iniciar sesión."}
+                                status_code = 200
+                else:
+                    response = {"status": "error", "message": "Parámetros inválidos."}
+                    status_code = 400
+            except Exception as e:
+                response = {"status": "error", "message": str(e)}
+                status_code = 500
+            finally:
+                conn.close()
+                
+            self.send_response(status_code)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+
         else:
             # Ruta POST desconocida — evita que el navegador quede colgado
             self.send_response(404)
