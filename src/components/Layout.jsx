@@ -269,30 +269,32 @@ export default function Layout({ children }) {
         'md:translate-x-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       )} style={{
-        background: 'rgba(248, 250, 255, 0.88)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderRight: '1px solid rgba(0,43,103,0.08)',
-        boxShadow: '4px 0 30px rgba(0,43,103,0.06)',
+        background: 'rgba(18, 20, 26, 0.92)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderRight: '1px solid rgba(255,255,255,0.07)',
+        boxShadow: '6px 0 40px rgba(0,0,0,0.35)',
       }}>
         {/* Sidebar brand */}
-        <div className="px-8 pt-8 pb-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CorpoelecLogo size={32} />
-              <span className="text-lg font-black text-slate-900 headline-font tracking-tighter">CORPOELEC</span>
+        <div className="px-6 pt-7 pb-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <CorpoelecLogo size={30} variant="white" />
+              <span className="text-base font-black text-white headline-font tracking-tighter">CORPOELEC</span>
             </div>
-            <button className="md:hidden p-1 text-slate-500" onClick={() => setSidebarOpen(false)}>
-              <X size={20} />
+            <button className="md:hidden p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors" onClick={() => setSidebarOpen(false)}>
+              <X size={18} />
             </button>
           </div>
-          <div>
-            <h2 className="text-sm font-black text-slate-700 leading-tight">Gestión de Asistencia</h2>
-            <p className="text-[10px] font-bold text-primary uppercase tracking-wider mt-0.5">Sistema Pulso Eléctrico</p>
+          {/* Divider con etiqueta */}
+          <div className="flex items-center gap-2">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/30">Sistema de Asistencia</span>
+            <div className="h-px flex-1 bg-white/10" />
           </div>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-1 pt-4">
+        <nav className="flex-1 flex flex-col gap-1 px-3 pt-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname.startsWith(item.path);
@@ -301,42 +303,60 @@ export default function Layout({ children }) {
                 key={item.path}
                 to={item.path}
                 className={clsx(
-                  'flex items-center gap-4 py-3 px-8 rounded-r-full mr-4 transition-all hover:translate-x-1',
-                  isActive ? 'bg-slate-100 text-slate-900 font-bold border-l-4 border-primary' : 'text-slate-600 hover:bg-slate-100 font-semibold'
+                  'group flex items-center gap-3.5 py-3 px-4 rounded-xl transition-all duration-200',
+                  isActive
+                    ? 'bg-white/10 text-white font-bold shadow-inner'
+                    : 'text-white/50 hover:text-white/90 hover:bg-white/[0.06] font-semibold'
                 )}
               >
-                <Icon size={20} className={isActive ? 'text-primary' : 'text-slate-500'} />
-                <span className="text-sm">{item.label}</span>
+                {/* Indicador activo */}
+                <div className={clsx(
+                  'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200',
+                  isActive
+                    ? 'bg-[#b5000b] shadow-[0_4px_12px_rgba(181,0,11,0.4)]'
+                    : 'bg-white/[0.06] group-hover:bg-white/10'
+                )}>
+                  <Icon size={16} className={isActive ? 'text-white' : 'text-white/60 group-hover:text-white/80'} />
+                </div>
+                <span className="text-sm tracking-tight">{item.label}</span>
+                {/* Dot activo a la derecha */}
+                {isActive && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#b5000b] shadow-[0_0_6px_rgba(181,0,11,0.8)]" />
+                )}
               </Link>
             );
           })}
         </nav>
 
         {/* Sidebar footer */}
-        <div className="px-6 pb-8 mt-auto">
-          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
-            <div className="flex items-center gap-3 mb-3">
-              {user?.foto_perfil ? (
-                <img
-                  src={user.foto_perfil}
-                  alt="Foto de perfil"
-                  className="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2 border-primary/20"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-                  {user?.nombres?.charAt(0)}{user?.apellidos?.charAt(0)}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-on-surface truncate">{user?.nombres} {user?.apellidos}</p>
-                <p className="text-xs text-primary font-semibold truncate">@{user?.usuario}</p>
+        <div className="px-3 pb-6 mt-auto">
+          {/* Divider */}
+          <div className="h-px bg-white/10 mb-4" />
+          <div className="rounded-xl p-3.5 flex items-center gap-3" style={{
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            {user?.foto_perfil ? (
+              <img
+                src={user.foto_perfil}
+                alt="Foto de perfil"
+                className="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2 border-white/20"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-[#b5000b]/80 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-[0_0_14px_rgba(181,0,11,0.35)]">
+                {user?.nombres?.charAt(0)}{user?.apellidos?.charAt(0)}
               </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-white/90 truncate">{user?.nombres} {user?.apellidos}</p>
+              <p className="text-[10px] text-white/40 font-medium truncate">@{user?.usuario}</p>
             </div>
             <button
               onClick={logout}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-colors font-bold text-xs border border-red-100"
+              title="Cerrar sesión"
+              className="p-2 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
             >
-              <LogOut size={14} /> Cerrar Sesión
+              <LogOut size={15} />
             </button>
           </div>
         </div>
