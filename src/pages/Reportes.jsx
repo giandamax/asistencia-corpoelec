@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Printer, X, QrCode, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { Printer, X, QrCode, CheckCircle, AlertCircle, Trash2, ShieldCheck, ShieldX } from 'lucide-react';
 import { useAlert } from '../components/AlertProvider';
 import { useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
@@ -18,6 +18,15 @@ export default function Reportes({ isPublic = false }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightedRowRef = useRef(null);
   const registroHecho = useRef(false); // evita doble registro en React StrictMode
+
+  // ── Verificación de identidad (solo vista pública) ─────────────────────────
+  const [cedulaInput, setCedulaInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [verificado, setVerificado] = useState(false);
+  const [verificacionError, setVerificacionError] = useState('');
+  const [verificando, setVerificando] = useState(false);
+  const cedulaRef = useRef(null);
 
   // Read ?empleado=ID and ?token=USER_X_CEDULA from URL (set by QR scan)
   const empleadoId = searchParams.get('empleado');
@@ -48,38 +57,91 @@ export default function Reportes({ isPublic = false }) {
     fetchEmpleado();
   }, [empleadoId]);
 
-  // ── Auto-register attendance when QR token is present ─────────────────────
-  useEffect(() => {
-    if (!token || registroHecho.current) return;
+  // ── Auto-register attendance when QR token is present (solo tras verificación) ─
+  // La función de registro se llama manualmente tras verificar identidad
+  const registrarAsistencia = async () => {
+    if (registroHecho.current) return;
     registroHecho.current = true;
-
-    const registrar = async () => {
-      setRegistroStatus('loading');
-      setRegistroMsg('Registrando asistencia...');
-      try {
-        const res = await fetch('/api/asistencias', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ qr_data: decodeURIComponent(token) }),
-        });
-        const result = await res.json();
-        if (res.ok) {
-          setRegistroStatus('success');
-          setRegistroMsg(result.message || 'Asistencia registrada correctamente.');
-          // Reload list so the new record appears immediately
-          fetchAsistencias();
-        } else {
-          setRegistroStatus('error');
-          setRegistroMsg(result.message || 'Error al registrar asistencia.');
-        }
-      } catch (_) {
+    setRegistroStatus('loading');
+    setRegistroMsg('Registrando asistencia...');
+    try {
+      const res = await fetch('/api/asistencias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qr_data: decodeURIComponent(token) }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        setRegistroStatus('success');
+        setRegistroMsg(result.message || 'Asistencia registrada correctamente.');
+        fetchAsistencias();
+      } else {
         setRegistroStatus('error');
-        setRegistroMsg('Error de conexión con el servidor.');
+        setRegistroMsg(result.message || 'Error al registrar asistencia.');
       }
-    };
-    registrar();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+    } catch (_) {
+      setRegistroStatus('error');
+      setRegistroMsg('Error de conexión con el servidor.');
+    }
+  };
+
+  // ── Verificar cédula + contraseña contra la API de login ──────────────────
+  const handleVerificar = async (e) => {
+    e.preventDefault();
+    if (!cedulaInput.trim()) {
+      setVerificacionError('Por favor ingresa tu número de cédula.');
+      return;
+    }
+    if (!passwordInput.trim()) {
+      setVerificacionError('Por favor ingresa tu contraseña.');
+      return;
+    }
+    setVerificando(true);
+    setVerificacionError('');
+
+    try {
+      // 1️⃣ Verificar credenciales contra el backend (login)
+      const loginRes = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cedula: cedulaInput.trim(), password: passwordInput }),
+      });
+      const loginData = await loginRes.json();
+
+      if (!loginRes.ok) {
+        // Credenciales incorrectas
+        setVerificacionError('❌ Cédula o contraseña incorrecta. Verifica tus datos e intenta de nuevo.');
+        setVerificando(false);
+        return;
+      }
+
+      // 2️⃣ Verificar que la persona logueada sea el titular del QR
+      const decodedToken = decodeURIComponent(token || '');
+      const parts = decodedToken.split('_');
+      // Formato: USER_ID_CEDULA → parts[1]=ID, parts[2]=CEDULA
+      const cedulaEnQR = parts.length >= 3 ? parts.slice(2).join('_') : '';
+      const userIdEnQR = parts.length >= 2 ? parts[1] : '';
+
+      const cedulaLimpia = cedulaInput.trim().replace(/\D/g, '');
+      const cedulaQRLimpia = String(cedulaEnQR).trim().replace(/\D/g, '');
+      const idCoincide = String(loginData.user?.id) === String(userIdEnQR);
+      const cedulaCoincide = cedulaLimpia === cedulaQRLimpia;
+
+      if (!cedulaCoincide || !idCoincide) {
+        setVerificacionError('🚫 Este código QR no te pertenece. Solo puedes registrar tu propia asistencia.');
+        setVerificando(false);
+        return;
+      }
+
+      // ✅ Todo correcto — registrar asistencia
+      setVerificado(true);
+      setVerificacionError('');
+      await registrarAsistencia();
+    } catch (_) {
+      setVerificacionError('Error de conexión. Verifica tu internet e intenta de nuevo.');
+    }
+    setVerificando(false);
+  };
 
   // ── Scroll highlighted row into view ──────────────────────────────────────
   useEffect(() => {
@@ -160,72 +222,158 @@ export default function Reportes({ isPublic = false }) {
 
   if (isPublic) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-100 p-8 flex flex-col items-center">
-          {/* Encabezado Corporativo */}
-          <div className="flex items-center gap-2.5 mb-8">
-            <CorpoelecLogo size={36} />
-            <span className="text-xl font-black text-slate-950 headline-font tracking-tight">CORPOELEC</span>
+      <div className="min-h-screen flex items-center justify-center p-4" style={{
+        background: 'linear-gradient(135deg, #001026 0%, #002b67 50%, #001840 100%)'
+      }}>
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-white/10 overflow-hidden">
+          {/* Header rojo corporativo */}
+          <div className="bg-[#b5000b] px-8 py-6 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              <CorpoelecLogo size={32} />
+              <span className="text-xl font-black text-white headline-font tracking-tight">CORPOELEC</span>
+            </div>
+            <p className="text-white/80 text-xs font-semibold uppercase tracking-widest">Sistema de Control de Asistencia</p>
           </div>
 
-          <h2 className="text-xl font-black text-slate-800 headline-font text-center mb-2">
-            Registro de Asistencia
-          </h2>
-          <p className="text-slate-400 text-xs font-semibold text-center mb-6">
-            Comprobante digital del empleado
-          </p>
-
-          {/* Estado de Registro */}
-          <div className={clsx(
-            'w-full flex flex-col items-center text-center p-6 rounded-2xl border gap-4 transition-all',
-            registroStatus === 'success' ? 'bg-green-50/70 border-green-200 text-green-700' :
-            registroStatus === 'error'   ? 'bg-red-50/70 border-red-200 text-red-600' :
-                                           'bg-slate-50 border-slate-200 text-slate-600'
-          )}>
-            <div className={clsx(
-              'w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0',
-              registroStatus === 'success' ? 'bg-green-100 text-green-600' :
-              registroStatus === 'error'   ? 'bg-red-100 text-red-600' :
-                                             'bg-slate-100 text-slate-400'
-            )}>
-              {registroStatus === 'success' ? <CheckCircle size={24} /> :
-               registroStatus === 'error'   ? <AlertCircle size={24} /> :
-                                              <QrCode size={24} className="animate-pulse" />}
-            </div>
-            
-            <div>
-              <p className={clsx(
-                'text-xs font-black uppercase tracking-widest mb-1',
-                registroStatus === 'success' ? 'text-green-700' :
-                registroStatus === 'error'   ? 'text-red-700' : 'text-slate-500'
-              )}>
-                {registroStatus === 'success' ? 'Asistencia Exitosa' :
-                 registroStatus === 'error'   ? 'Error al Registrar' :
-                                                 'Procesando...'}
-              </p>
-              
-              {empleadoInfo && (
-                <p className="text-slate-900 font-bold text-lg leading-tight">
-                  {empleadoInfo.nombre}
-                  <span className="block font-mono text-xs text-slate-400 font-semibold mt-0.5">
-                    V-{empleadoInfo.cedula}
-                  </span>
+          <div className="p-8 flex flex-col items-center">
+            {/* PASO 1: Verificación de Identidad */}
+            {!verificado && registroStatus !== 'success' && registroStatus !== 'error' ? (
+              <>
+                <div className="w-16 h-16 rounded-2xl bg-[#002b67]/10 flex items-center justify-center mb-5">
+                  <ShieldCheck size={32} className="text-[#002b67]" />
+                </div>
+                <h2 className="text-xl font-black text-slate-800 headline-font text-center mb-1">
+                  Verificación de Identidad
+                </h2>
+                <p className="text-slate-400 text-xs font-semibold text-center mb-2">
+                  Para registrar tu asistencia, confirma tu identidad.
                 </p>
-              )}
-            </div>
 
-            {registroMsg && (
-              <p className={clsx(
-                'text-xs font-medium border-t border-slate-100 pt-3 w-full',
-                registroStatus === 'success' ? 'text-green-600' :
-                registroStatus === 'error'   ? 'text-red-600' : 'text-slate-400'
-              )}>{registroMsg}</p>
+                {empleadoInfo && (
+                  <div className="w-full bg-slate-50 rounded-2xl p-4 mb-5 flex items-center gap-3 border border-slate-100">
+                    <div className="w-10 h-10 rounded-full bg-[#002b67]/10 flex items-center justify-center font-bold text-[#002b67] text-sm flex-shrink-0">
+                      {empleadoInfo.nombre.split(' ').map(n => n[0]).slice(0, 2).join('')}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800 text-sm leading-tight">{empleadoInfo.nombre}</p>
+                      <p className="text-xs text-slate-400 font-mono">Titular del código QR</p>
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleVerificar} className="w-full space-y-4">
+                  {/* Campo Cédula */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-500">Número de Cédula</label>
+                    <input
+                      ref={cedulaRef}
+                      type="number"
+                      inputMode="numeric"
+                      placeholder="Ej: 12345678"
+                      value={cedulaInput}
+                      onChange={e => { setCedulaInput(e.target.value); setVerificacionError(''); }}
+                      className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-base font-bold text-center focus:border-[#b5000b] focus:ring-4 focus:ring-[#b5000b]/10 outline-none text-slate-800 transition-all placeholder:text-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Campo Contraseña */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-500">Contraseña</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Tu contraseña del sistema"
+                        value={passwordInput}
+                        onChange={e => { setPasswordInput(e.target.value); setVerificacionError(''); }}
+                        className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 pr-12 text-base font-bold focus:border-[#b5000b] focus:ring-4 focus:ring-[#b5000b]/10 outline-none text-slate-800 transition-all placeholder:text-slate-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(v => !v)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                        ) : (
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {verificacionError && (
+                    <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl animate-fade-in">
+                      <ShieldX size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-red-700 text-xs font-semibold leading-relaxed">{verificacionError}</p>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={verificando || !cedulaInput.trim()}
+                    className="w-full py-4 bg-[#b5000b] hover:bg-[#9b0009] text-white font-black rounded-xl text-sm uppercase tracking-wider transition-all shadow-lg shadow-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {verificando ? (
+                      <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Verificando...</>
+                    ) : (
+                      <><ShieldCheck size={18} /> Verificar y Registrar Asistencia</>
+                    )}
+                  </button>
+                </form>
+              </>
+            ) : (
+              /* PASO 2: Resultado del registro */
+              <div className={clsx(
+                'w-full flex flex-col items-center text-center p-6 rounded-2xl border gap-4',
+                registroStatus === 'success' ? 'bg-green-50/70 border-green-200' :
+                registroStatus === 'loading' ? 'bg-slate-50 border-slate-200' :
+                                               'bg-red-50/70 border-red-200'
+              )}>
+                <div className={clsx(
+                  'w-14 h-14 rounded-2xl flex items-center justify-center',
+                  registroStatus === 'success' ? 'bg-green-100 text-green-600' :
+                  registroStatus === 'loading' ? 'bg-slate-100 text-slate-400' :
+                                                 'bg-red-100 text-red-600'
+                )}>
+                  {registroStatus === 'success' ? <CheckCircle size={28} /> :
+                   registroStatus === 'loading' ? <QrCode size={28} className="animate-pulse" /> :
+                                                  <AlertCircle size={28} />}
+                </div>
+
+                <div>
+                  <p className={clsx(
+                    'text-xs font-black uppercase tracking-widest mb-2',
+                    registroStatus === 'success' ? 'text-green-700' :
+                    registroStatus === 'loading' ? 'text-slate-500' : 'text-red-700'
+                  )}>
+                    {registroStatus === 'success' ? '✅ Asistencia Registrada' :
+                     registroStatus === 'loading' ? 'Procesando...' : '❌ Error al Registrar'}
+                  </p>
+
+                  {empleadoInfo && (
+                    <p className="text-slate-900 font-bold text-lg leading-tight">
+                      {empleadoInfo.nombre}
+                      <span className="block font-mono text-xs text-slate-400 font-semibold mt-0.5">V-{empleadoInfo.cedula}</span>
+                    </p>
+                  )}
+                </div>
+
+                {registroMsg && (
+                  <p className={clsx(
+                    'text-xs font-medium border-t pt-3 w-full',
+                    registroStatus === 'success' ? 'border-green-200 text-green-700' :
+                    registroStatus === 'loading' ? 'border-slate-200 text-slate-400' : 'border-red-200 text-red-600'
+                  )}>{registroMsg}</p>
+                )}
+              </div>
             )}
-          </div>
 
-          <p className="text-center text-[10px] text-slate-300 font-medium mt-8 font-mono">
-            © {new Date().getFullYear()} Corpoelec
-          </p>
+            <p className="text-center text-[10px] text-slate-300 font-medium mt-6 font-mono">
+              © {new Date().getFullYear()} CORPOELEC · Sistema de Asistencia Digital
+            </p>
+          </div>
         </div>
       </div>
     );
