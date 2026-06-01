@@ -99,6 +99,124 @@ function NotificationsPanel({ onClose }) {
   );
 }
  
+// ── Animated Parallax Background ──────────────────────────────────────────
+function ParallaxBackground() {
+  const orb1 = useRef(null);
+  const orb2 = useRef(null);
+  const orb3 = useRef(null);
+  const mouse = useRef({ x: 0.5, y: 0.5 });
+  const current = useRef({ x: 0.5, y: 0.5 });
+  const rafId = useRef(null);
+
+  useEffect(() => {
+    const handleMove = (e) => {
+      mouse.current = {
+        x: e.clientX / window.innerWidth,
+        y: e.clientY / window.innerHeight,
+      };
+    };
+    window.addEventListener('mousemove', handleMove, { passive: true });
+
+    const ease = 0.055; // suavidad del seguimiento
+    const animate = () => {
+      current.current.x += (mouse.current.x - current.current.x) * ease;
+      current.current.y += (mouse.current.y - current.current.y) * ease;
+
+      const cx = current.current.x;
+      const cy = current.current.y;
+
+      if (orb1.current) {
+        orb1.current.style.transform =
+          `translate(${cx * 60 - 30}px, ${cy * 60 - 30}px)`;
+      }
+      if (orb2.current) {
+        orb2.current.style.transform =
+          `translate(${cx * -80 + 40}px, ${cy * -80 + 40}px)`;
+      }
+      if (orb3.current) {
+        orb3.current.style.transform =
+          `translate(${cx * 45 - 22}px, ${cy * -50 + 25}px)`;
+      }
+      rafId.current = requestAnimationFrame(animate);
+    };
+    rafId.current = requestAnimationFrame(animate);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      cancelAnimationFrame(rafId.current);
+    };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 overflow-hidden pointer-events-none"
+      style={{ zIndex: 0 }}
+      aria-hidden
+    >
+      {/* Fondo base degradado oscuro-azul */}
+      <div className="absolute inset-0" style={{
+        background: 'linear-gradient(145deg, #f0f4ff 0%, #e8edf8 40%, #f5f0f8 70%, #edf2ff 100%)'
+      }} />
+
+      {/* Orbe 1 – Azul corporativo grande (esquina superior izquierda) */}
+      <div
+        ref={orb1}
+        className="absolute will-change-transform"
+        style={{
+          width: '70vw',
+          height: '70vw',
+          top: '-20vw',
+          left: '-15vw',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 40% 40%, rgba(0,43,103,0.18) 0%, rgba(0,43,103,0.07) 50%, transparent 75%)',
+          filter: 'blur(40px)',
+          transition: 'transform 0.1s linear',
+        }}
+      />
+
+      {/* Orbe 2 – Rojo Corpoelec (esquina inferior derecha) */}
+      <div
+        ref={orb2}
+        className="absolute will-change-transform"
+        style={{
+          width: '60vw',
+          height: '60vw',
+          bottom: '-10vw',
+          right: '-10vw',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 60% 60%, rgba(181,0,11,0.13) 0%, rgba(181,0,11,0.05) 55%, transparent 78%)',
+          filter: 'blur(50px)',
+          transition: 'transform 0.1s linear',
+        }}
+      />
+
+      {/* Orbe 3 – Azul claro (centro derecha) */}
+      <div
+        ref={orb3}
+        className="absolute will-change-transform"
+        style={{
+          width: '45vw',
+          height: '45vw',
+          top: '30%',
+          right: '10%',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle at 50% 50%, rgba(0,75,147,0.10) 0%, rgba(0,75,147,0.04) 60%, transparent 80%)',
+          filter: 'blur(35px)',
+          transition: 'transform 0.1s linear',
+        }}
+      />
+
+      {/* Textura sutil de ruido para profundidad */}
+      <div className="absolute inset-0" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E")`,
+        backgroundRepeat: 'repeat',
+        backgroundSize: '180px',
+        opacity: 0.5,
+      }} />
+    </div>
+  );
+}
+
 // ── Main Layout ────────────────────────────────────────────────────────────
 export default function Layout({ children }) {
   const location = useLocation();
@@ -133,7 +251,9 @@ export default function Layout({ children }) {
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen bg-surface">
+    <div className="flex min-h-screen" style={{ position: 'relative' }}>
+      {/* Fondo animado con parallax */}
+      <ParallaxBackground />
 
       {/* ── Mobile overlay ── */}
       {sidebarOpen && (
@@ -145,10 +265,16 @@ export default function Layout({ children }) {
 
       {/* ── Sidebar (desktop: always visible | mobile: drawer) ── */}
       <aside className={clsx(
-        'fixed left-0 top-0 h-screen w-64 flex flex-col bg-slate-50 z-50 transition-transform duration-300 no-print',
+        'fixed left-0 top-0 h-screen w-64 flex flex-col z-50 transition-transform duration-300 no-print',
         'md:translate-x-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      )}>
+      )} style={{
+        background: 'rgba(248, 250, 255, 0.88)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderRight: '1px solid rgba(0,43,103,0.08)',
+        boxShadow: '4px 0 30px rgba(0,43,103,0.06)',
+      }}>
         {/* Sidebar brand */}
         <div className="px-8 pt-8 pb-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
@@ -295,7 +421,7 @@ export default function Layout({ children }) {
       </header>
 
       {/* ── Main content ── */}
-      <main className="w-full min-h-screen md:ml-64 px-4 sm:px-8 lg:px-12 pt-24 pb-24 md:pb-8 animate-fade-in">
+      <main className="w-full min-h-screen md:ml-64 px-4 sm:px-8 lg:px-12 pt-24 pb-24 md:pb-8 animate-fade-in" style={{ position: 'relative', zIndex: 1 }}>
         <div className="max-w-7xl mx-auto py-6">
           {children || <Outlet />}
         </div>
