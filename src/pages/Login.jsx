@@ -60,9 +60,20 @@ function LoginForm({ onSwitch, onForgot }) {
   return (
     <>
       <h2 className="text-2xl font-black headline-font text-on-surface mb-1">Iniciar Sesión</h2>
-      <p className="text-on-surface-variant text-sm font-medium mb-8">
+      <p className="text-on-surface-variant text-sm font-medium mb-5">
         Ingrese sus credenciales para acceder al panel.
       </p>
+
+      {/* ── Aviso de acceso restringido ── */}
+      <div className="flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 flex-shrink-0 mt-0.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <div>
+          <p className="text-amber-800 text-xs font-black uppercase tracking-wider mb-0.5">Acceso Restringido</p>
+          <p className="text-amber-700 text-xs font-medium leading-relaxed">
+            Este sistema es de uso exclusivo del <strong>personal autorizado de CORPOELEC</strong>. El acceso no autorizado está prohibido y será reportado.
+          </p>
+        </div>
+      </div>
 
       {error && (
         <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-6 animate-fade-in">
