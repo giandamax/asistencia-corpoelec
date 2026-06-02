@@ -8,7 +8,7 @@ import {
 import CorpoelecLogo from '../components/CorpoelecLogo';
 
 const INPUT_CLASS =
-  'w-full px-5 py-4 bg-surface-container-low text-on-surface rounded-xl font-medium outline-none border-0 border-b-2 border-transparent focus:border-primary transition-colors placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f3f4f5] [&:-webkit-autofill]:[color:#191c1d]';
+  'w-full px-5 py-4 bg-white/45 border border-slate-200/40 text-on-surface rounded-xl font-medium outline-none border-b-2 border-b-transparent focus:border-b-primary transition-all placeholder:text-slate-400 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#f3f4f5] [&:-webkit-autofill]:[color:#191c1d]';
 
 // ─── Formulario de Login ───────────────────────────────────────────────────
 function LoginForm({ onSwitch, onForgot }) {
@@ -483,7 +483,7 @@ export default function Login() {
       <div className={`w-full animate-fade-in relative transition-all duration-300 ${mode === 'register' ? 'max-w-lg' : 'max-w-md'} z-10`}>
         {/* Logo / Brand */}
         <div className="text-center mb-8 flex flex-col items-center justify-center">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2.5rem] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.15)] mb-6 transition-transform duration-500 hover:scale-105">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-[2.5rem] bg-white/90 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.15)] mb-6 transition-transform duration-500 hover:scale-105">
             <CorpoelecLogo size={70} />
           </div>
           <h1 className="text-4xl font-black text-white headline-font tracking-tighter leading-none">
@@ -501,7 +501,7 @@ export default function Login() {
               onClick={() => setMode('login')}
               className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
                 mode === 'login'
-                  ? 'bg-white shadow-md text-primary'
+                  ? 'bg-white/85 shadow-md text-primary'
                   : 'text-white/70 hover:text-white'
               }`}
             >
@@ -511,7 +511,7 @@ export default function Login() {
               onClick={() => setMode('register')}
               className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
                 mode === 'register'
-                  ? 'bg-white shadow-md text-primary'
+                  ? 'bg-white/85 shadow-md text-primary'
                   : 'text-white/70 hover:text-white'
               }`}
             >
@@ -521,7 +521,7 @@ export default function Login() {
         )}
 
         {/* Card */}
-        <div className="bg-white rounded-3xl shadow-[0_45px_100px_rgba(0,0,0,0.25)] border border-slate-100 p-10">
+        <div className="bg-white/75 backdrop-blur-lg rounded-3xl shadow-[0_45px_100px_rgba(0,0,0,0.25)] border border-white/20 p-10">
           {mode === 'login' && (
             <LoginForm
               onSwitch={() => setMode('register')}
