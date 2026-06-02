@@ -44,12 +44,19 @@ def init_db():
             usuario TEXT UNIQUE,
             password TEXT,
             foto_perfil TEXT,
-            rol TEXT NOT NULL DEFAULT 'usuario'
+            rol TEXT NOT NULL DEFAULT 'usuario',
+            aprobado BOOLEAN NOT NULL DEFAULT FALSE
         )
     """)
-    # Migrar columna rol en tablas existentes
+    # Migrar columnas en tablas existentes
     cur.execute("""
         ALTER TABLE Usuarios ADD COLUMN IF NOT EXISTS rol TEXT NOT NULL DEFAULT 'usuario'
+    """)
+    cur.execute("""
+        ALTER TABLE Usuarios ADD COLUMN IF NOT EXISTS aprobado BOOLEAN NOT NULL DEFAULT FALSE
+    """)
+    cur.execute("""
+        UPDATE Usuarios SET aprobado = TRUE WHERE rol = 'admin'
     """)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS Gestion_QR (

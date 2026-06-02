@@ -27,11 +27,11 @@ class handler(BaseHTTPRequestHandler):
             cur = conn.cursor()
             cur.execute(f'UPDATE Usuarios SET {", ".join(fields)} WHERE id = %s', values)
             conn.commit()
-            cur.execute("SELECT id, nombres, apellidos, cedula_identidad, correo, usuario, foto_perfil, rol FROM Usuarios WHERE id = %s", (user_id,))
+            cur.execute("SELECT id, nombres, apellidos, cedula_identidad, correo, usuario, foto_perfil, rol, aprobado FROM Usuarios WHERE id = %s", (user_id,))
             r = cur.fetchone()
             cur.close(); conn.close()
             user_data = {"id": r[0], "nombres": r[1], "apellidos": r[2], "cedula_identidad": r[3],
-                         "correo": r[4], "usuario": r[5], "foto_perfil": r[6], "rol": r[7]}
+                         "correo": r[4], "usuario": r[5], "foto_perfil": r[6], "rol": r[7], "aprobado": bool(r[8])}
             self._json(200, {"status": "success", "message": "Perfil actualizado.", "user": user_data})
         except Exception as e:
             self._json(500, {"status": "error", "message": str(e)})

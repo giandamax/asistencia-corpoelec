@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Bell, LayoutDashboard, BadgeCheck, QrCode, BarChart3, Settings, LogOut, X, CheckCircle, Clock, Menu } from 'lucide-react';
+import { Bell, LayoutDashboard, BadgeCheck, UserCheck, QrCode, BarChart3, Settings, LogOut, X, CheckCircle, Clock, Menu } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect, useRef } from 'react';
@@ -223,11 +223,13 @@ export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
  
   const navItems = [
     { path: '/dashboard', label: 'Panel', icon: LayoutDashboard },
     { path: '/directorio', label: 'Directorio', icon: BadgeCheck },
+    { path: '/aprobaciones', label: 'Aprobaciones', icon: UserCheck, badge: pendingCount },
     { path: '/qr', label: 'Generar QR', icon: QrCode },
     { path: '/reportes', label: 'Reportes', icon: BarChart3 },
     { path: '/configuracion', label: 'Configuración', icon: Settings },
@@ -235,15 +237,22 @@ export default function Layout({ children }) {
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
-    const fetchCount = async () => {
+    const fetchCounts = async () => {
       try {
         const res = await fetch('/api/asistencias');
         const data = await res.json();
         setUnreadCount(data.filter(a => a.fecha === today).length);
       } catch { /* ignore */ }
+
+      try {
+        const res = await fetch('/api/usuarios');
+        const data = await res.json();
+        const pending = data.filter(u => u.rol === 'usuario' && !u.aprobado).length;
+        setPendingCount(pending);
+      } catch { /* ignore */ }
     };
-    fetchCount();
-    const interval = setInterval(fetchCount, 30000);
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -319,8 +328,14 @@ export default function Layout({ children }) {
                   <Icon size={16} className={isActive ? 'text-white' : 'text-white/60 group-hover:text-white/80'} />
                 </div>
                 <span className="text-sm tracking-tight">{item.label}</span>
+                {/* Badge de conteo si existe */}
+                {item.badge > 0 && (
+                  <span className="ml-auto bg-[#b5000b] text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-md animate-pulse">
+                    {item.badge}
+                  </span>
+                )}
                 {/* Dot activo a la derecha */}
-                {isActive && (
+                {isActive && !item.badge && (
                   <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#b5000b] shadow-[0_0_6px_rgba(181,0,11,0.8)]" />
                 )}
               </Link>
@@ -462,8 +477,15 @@ export default function Layout({ children }) {
                   isActive ? 'text-primary' : 'text-slate-400'
                 )}
               >
-                <div className={clsx('p-1.5 rounded-xl transition-all', isActive && 'bg-primary/10')}>
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                <div className="relative">
+                  <div className={clsx('p-1.5 rounded-xl transition-all', isActive && 'bg-primary/10')}>
+                    <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                  </div>
+                  {item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#b5000b] text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-md animate-pulse">
+                      {item.badge}
+                    </span>
+                  )}
                 </div>
                 <span className="text-[10px] font-bold">{item.label}</span>
               </Link>
