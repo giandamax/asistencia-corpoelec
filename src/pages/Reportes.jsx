@@ -20,13 +20,13 @@ export default function Reportes({ isPublic = false }) {
   const registroHecho = useRef(false); // evita doble registro en React StrictMode
 
   // ── Verificación de identidad (solo vista pública) ─────────────────────────
-  const [cedulaInput, setCedulaInput] = useState('');
+  const [usuarioInput, setUsuarioInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [verificado, setVerificado] = useState(false);
   const [verificacionError, setVerificacionError] = useState('');
   const [verificando, setVerificando] = useState(false);
-  const cedulaRef = useRef(null);
+  const usuarioRef = useRef(null);
 
   // Read ?empleado=ID and ?token=USER_X_CEDULA from URL (set by QR scan)
   const empleadoId = searchParams.get('empleado');
@@ -85,11 +85,11 @@ export default function Reportes({ isPublic = false }) {
     }
   };
 
-  // ── Verificar cédula + contraseña contra la API de login ──────────────────
+  // ── Verificar usuario + contraseña contra la API de login ──────────────────
   const handleVerificar = async (e) => {
     e.preventDefault();
-    if (!cedulaInput.trim()) {
-      setVerificacionError('Por favor ingresa tu número de cédula.');
+    if (!usuarioInput.trim()) {
+      setVerificacionError('Por favor ingresa tu nombre de usuario.');
       return;
     }
     if (!passwordInput.trim()) {
@@ -100,32 +100,31 @@ export default function Reportes({ isPublic = false }) {
     setVerificacionError('');
 
     try {
-      // 1️⃣ Verificar credenciales contra el backend (login)
+      // 1️⃣ Autenticar usuario con la API de login (usa campo 'usuario')
       const loginRes = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cedula: cedulaInput.trim(), password: passwordInput }),
+        body: JSON.stringify({ usuario: usuarioInput.trim(), password: passwordInput }),
       });
       const loginData = await loginRes.json();
 
       if (!loginRes.ok) {
-        // Credenciales incorrectas
-        setVerificacionError('❌ Cédula o contraseña incorrecta. Verifica tus datos e intenta de nuevo.');
+        setVerificacionError('❌ Usuario o contraseña incorrecta. Verifica tus datos e intenta de nuevo.');
         setVerificando(false);
         return;
       }
 
-      // 2️⃣ Verificar que la persona logueada sea el titular del QR
+      // 2️⃣ Verificar que la persona autenticada sea el titular del QR
       const decodedToken = decodeURIComponent(token || '');
       const parts = decodedToken.split('_');
-      // Formato: USER_ID_CEDULA → parts[1]=ID, parts[2]=CEDULA
+      // Formato token: USER_ID_CEDULA → parts[0]=USER, parts[1]=ID, parts[2]=CEDULA
       const cedulaEnQR = parts.length >= 3 ? parts.slice(2).join('_') : '';
       const userIdEnQR = parts.length >= 2 ? parts[1] : '';
 
-      const cedulaLimpia = cedulaInput.trim().replace(/\D/g, '');
+      const cedulaUsuario = String(loginData.user?.cedula_identidad || '').trim().replace(/\D/g, '');
       const cedulaQRLimpia = String(cedulaEnQR).trim().replace(/\D/g, '');
       const idCoincide = String(loginData.user?.id) === String(userIdEnQR);
-      const cedulaCoincide = cedulaLimpia === cedulaQRLimpia;
+      const cedulaCoincide = cedulaUsuario === cedulaQRLimpia;
 
       if (!cedulaCoincide || !idCoincide) {
         setVerificacionError('🚫 Este código QR no te pertenece. Solo puedes registrar tu propia asistencia.');
@@ -262,17 +261,18 @@ export default function Reportes({ isPublic = false }) {
                 )}
 
                 <form onSubmit={handleVerificar} className="w-full space-y-4">
-                  {/* Campo Cédula */}
+                  {/* Campo Usuario */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-black uppercase tracking-wider text-slate-500">Número de Cédula</label>
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-500">Nombre de Usuario</label>
                     <input
-                      ref={cedulaRef}
-                      type="number"
-                      inputMode="numeric"
-                      placeholder="Ej: 12345678"
-                      value={cedulaInput}
-                      onChange={e => { setCedulaInput(e.target.value); setVerificacionError(''); }}
-                      className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-base font-bold text-center focus:border-[#b5000b] focus:ring-4 focus:ring-[#b5000b]/10 outline-none text-slate-800 transition-all placeholder:text-slate-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      ref={usuarioRef}
+                      type="text"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      placeholder="Tu usuario del sistema"
+                      value={usuarioInput}
+                      onChange={e => { setUsuarioInput(e.target.value); setVerificacionError(''); }}
+                      className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-3.5 text-base font-bold text-center focus:border-[#b5000b] focus:ring-4 focus:ring-[#b5000b]/10 outline-none text-slate-800 transition-all placeholder:text-slate-300"
                       autoFocus
                     />
                   </div>
@@ -312,7 +312,7 @@ export default function Reportes({ isPublic = false }) {
 
                   <button
                     type="submit"
-                    disabled={verificando || !cedulaInput.trim()}
+                    disabled={verificando || !usuarioInput.trim()}
                     className="w-full py-4 bg-[#b5000b] hover:bg-[#9b0009] text-white font-black rounded-xl text-sm uppercase tracking-wider transition-all shadow-lg shadow-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {verificando ? (
