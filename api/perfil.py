@@ -13,7 +13,7 @@ class handler(BaseHTTPRequestHandler):
             if not user_id:
                 return self._json(400, {"status": "error", "message": "ID de usuario requerido."})
             fields, values = [], []
-            for key in ("nombres", "apellidos", "correo", "foto_perfil"):
+            for key in ("nombres", "apellidos", "correo", "foto_perfil", "cedula_identidad"):
                 if key in body:
                     fields.append(f"{key} = %s")
                     values.append(body[key])

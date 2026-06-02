@@ -10,6 +10,7 @@ export default function Configuracion() {
   const [perfil, setPerfil] = useState({
     nombres: user?.nombres || '',
     apellidos: user?.apellidos || '',
+    cedula_identidad: user?.cedula_identidad || '',
     correo: user?.correo || '',
     foto_perfil: user?.foto_perfil || null,
     password: '',
@@ -95,6 +96,7 @@ export default function Configuracion() {
         id: user.id,
         nombres: perfil.nombres,
         apellidos: perfil.apellidos,
+        cedula_identidad: perfil.cedula_identidad,
         correo: perfil.correo,
         foto_perfil: perfil.foto_perfil,
       };
@@ -279,16 +281,33 @@ export default function Configuracion() {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-black uppercase tracking-wider text-slate-500">Correo Electrónico</label>
-            <input
-              type="email"
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400"
-              placeholder="correo@ejemplo.com"
-              value={perfil.correo}
-              onChange={(e) => setPerfil({ ...perfil, correo: e.target.value })}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-500">Cédula de Identidad</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400 select-none">V-</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  placeholder="12345678"
+                  value={perfil.cedula_identidad}
+                  onChange={(e) => setPerfil({ ...perfil, cedula_identidad: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-black uppercase tracking-wider text-slate-500">Correo Electrónico</label>
+              <input
+                type="email"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none font-medium text-slate-800 transition-all placeholder:text-slate-400"
+                placeholder="correo@ejemplo.com"
+                value={perfil.correo}
+                onChange={(e) => setPerfil({ ...perfil, correo: e.target.value })}
+              />
+            </div>
           </div>
+
 
           {/* ── Cambiar contraseña (opcional) ── */}
           <div className="pt-2 border-t border-slate-100">
