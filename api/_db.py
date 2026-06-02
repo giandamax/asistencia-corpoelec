@@ -43,8 +43,13 @@ def init_db():
             correo TEXT,
             usuario TEXT UNIQUE,
             password TEXT,
-            foto_perfil TEXT
+            foto_perfil TEXT,
+            rol TEXT NOT NULL DEFAULT 'usuario'
         )
+    """)
+    # Migrar columna rol en tablas existentes
+    cur.execute("""
+        ALTER TABLE Usuarios ADD COLUMN IF NOT EXISTS rol TEXT NOT NULL DEFAULT 'usuario'
     """)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS Gestion_QR (

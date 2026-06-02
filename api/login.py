@@ -17,14 +17,15 @@ class handler(BaseHTTPRequestHandler):
             conn = get_conn()
             cur = conn.cursor()
             cur.execute(
-                "SELECT id, nombres, apellidos, cedula_identidad, correo, usuario, foto_perfil FROM Usuarios WHERE usuario = %s AND password = %s",
+                "SELECT id, nombres, apellidos, cedula_identidad, correo, usuario, foto_perfil, rol FROM Usuarios WHERE usuario = %s AND password = %s",
                 (usuario, hashed)
             )
             row = cur.fetchone()
             cur.close(); conn.close()
             if row:
                 user_data = {"id": row[0], "nombres": row[1], "apellidos": row[2],
-                             "cedula_identidad": row[3], "correo": row[4], "usuario": row[5], "foto_perfil": row[6]}
+                             "cedula_identidad": row[3], "correo": row[4], "usuario": row[5],
+                             "foto_perfil": row[6], "rol": row[7]}
                 self._json(200, {"status": "success", "user": user_data})
             else:
                 self._json(401, {"status": "error", "message": "Usuario o contraseña incorrectos."})

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, UserPlus, X, QrCode, Trash2, AlertTriangle, ShieldOff } from 'lucide-react';
+import { Search, UserPlus, X, QrCode, Trash2, ShieldCheck, ShieldOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAlert } from '../components/AlertProvider';
 import { useAuth } from '../context/AuthContext';
@@ -7,8 +7,7 @@ import clsx from 'clsx';
 
 export default function Directorio() {
   const { user } = useAuth();
-  // Solo admin o giandamax pueden eliminar y registrar empleados
-  const isAdmin = user?.usuario === 'admin' || user?.usuario === 'giandamax';
+  const isAdmin = user?.rol === 'admin';
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,6 +69,30 @@ export default function Directorio() {
       }
     } catch (err) {
       showAlert('Error de conexión al servidor', 'error');
+    }
+  };
+
+  const handleToggleRol = async (targetUser) => {
+    const nuevoRol = targetUser.rol === 'admin' ? 'usuario' : 'admin';
+    const confirmMsg = nuevoRol === 'admin'
+      ? `¿Convertir a ${targetUser.nombres} en Administrador? Tendrá acceso completo al sistema.`
+      : `¿Quitar permisos de Administrador a ${targetUser.nombres}? Ya no podrá acceder al sistema.`;
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      const res = await fetch('/api/rol', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_id: targetUser.id, rol: nuevoRol }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        showAlert(`Rol actualizado: ${targetUser.nombres} ahora es ${nuevoRol === 'admin' ? 'Administrador' : 'Usuario'}.`, 'success');
+        fetchUsuarios();
+      } else {
+        showAlert(result.message || 'Error al actualizar rol.', 'error');
+      }
+    } catch {
+      showAlert('Error de conexión.', 'error');
     }
   };
 
@@ -170,33 +193,56 @@ export default function Directorio() {
               <p className="text-slate-500 font-semibold">No se encontraron resultados{searchTerm && <> para <span className="text-primary">&ldquo;{searchTerm}&rdquo;</span></>}</p>
             </div>
           ) : (
-            filteredUsuarios.map((u, index) => {
+              filteredUsuarios.map((u, index) => {
               const isEven = index % 2 === 0;
               const bgClass = isEven ? 'hover:bg-surface-container-low' : 'bg-surface-container-low/20 hover:bg-surface-container-low';
               const initials = u.nombres.charAt(0) + u.apellidos.charAt(0);
+              const esAdmin = u.rol === 'admin';
               return (
                 <div key={u.id} className={clsx('grid grid-cols-12 items-center px-10 py-5 transition-colors border-b border-slate-50', bgClass)}>
                   <div className="col-span-4 flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-base flex-shrink-0">{initials}</div>
+                    <div className={clsx('w-11 h-11 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0', esAdmin ? 'bg-[#b5000b]/10 text-[#b5000b]' : 'bg-primary/10 text-primary')}>{initials}</div>
                     <div>
-                      <h4 className="text-on-surface font-bold headline-font text-base leading-tight">{u.nombres} {u.apellidos}</h4>
-                      <p className="text-primary text-xs font-bold uppercase tracking-tighter">Activo</p>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-on-surface font-bold headline-font text-base leading-tight">{u.nombres} {u.apellidos}</h4>
+                        {esAdmin && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#b5000b]/10 text-[#b5000b] text-[10px] font-black uppercase tracking-wider">
+                            <ShieldCheck size={10} /> Admin
+                          </span>
+                        )}
+                      </div>
+                      <p className={clsx('text-xs font-bold uppercase tracking-tighter', esAdmin ? 'text-[#b5000b]' : 'text-primary')}>{esAdmin ? 'Administrador' : 'Usuario'}</p>
                     </div>
                   </div>
                   <div className="col-span-3 text-center">
                     <span className="px-3 py-1.5 bg-surface-container-high rounded-full font-mono text-sm text-on-surface-variant font-bold">V-{u.cedula_identidad}</span>
                   </div>
-                  <div className="col-span-3">
+                  <div className="col-span-2">
                     <p className="text-on-surface font-semibold text-sm truncate">{u.correo}</p>
                     <p className="text-on-surface-variant text-xs font-medium">@{u.usuario}</p>
                   </div>
-                  <div className="col-span-2 flex justify-end gap-2">
+                  <div className="col-span-3 flex justify-end gap-1.5">
                     <button onClick={() => navigate('/qr', { state: { userId: u.id } })} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary-container/20 text-on-secondary-container hover:bg-secondary-container transition-all font-semibold text-xs" title="Ver QR">
-                      <QrCode size={14} /> Ver QR
+                      <QrCode size={14} /> QR
                     </button>
+                    {isAdmin && u.id !== user.id && (
+                      <button
+                        onClick={() => handleToggleRol(u)}
+                        className={clsx(
+                          'flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all font-semibold text-xs',
+                          esAdmin
+                            ? 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                        )}
+                        title={esAdmin ? 'Quitar Admin' : 'Hacer Admin'}
+                      >
+                        {esAdmin ? <ShieldOff size={14} /> : <ShieldCheck size={14} />}
+                        {esAdmin ? 'Quitar Admin' : 'Admin'}
+                      </button>
+                    )}
                     {isAdmin && (
                       <button onClick={() => setDeleteTarget(u)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all font-semibold text-xs" title="Eliminar">
-                        <Trash2 size={14} /> Eliminar
+                        <Trash2 size={14} />
                       </button>
                     )}
                   </div>

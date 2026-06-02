@@ -10,10 +10,10 @@ class handler(BaseHTTPRequestHandler):
             init_db()
             conn = get_conn()
             cur = conn.cursor()
-            cur.execute("SELECT id, nombres, apellidos, cedula_identidad, correo, usuario, foto_perfil FROM Usuarios")
+            cur.execute("SELECT id, nombres, apellidos, cedula_identidad, correo, usuario, foto_perfil, rol FROM Usuarios")
             rows = cur.fetchall()
             data = [{"id": r[0], "nombres": r[1], "apellidos": r[2], "cedula_identidad": r[3],
-                     "correo": r[4], "usuario": r[5], "foto_perfil": r[6]} for r in rows]
+                     "correo": r[4], "usuario": r[5], "foto_perfil": r[6], "rol": r[7]} for r in rows]
             cur.close(); conn.close()
             self._json(200, data)
         except Exception as e:
