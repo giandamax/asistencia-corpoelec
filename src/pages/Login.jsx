@@ -303,18 +303,15 @@ function RegisterForm({ onSwitch }) {
       const data = await res.json();
 
       if (res.ok) {
-        setSuccess('¡Cuenta creada! Iniciando sesión...');
-        const loginRes = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ usuario, password }),
+        setSuccess('¡Registro exitoso! Su usuario ya ha sido registrado. Por favor espere que un administrador apruebe su acceso.');
+        setForm({
+          nombres: '', apellidos: '', cedula_identidad: '',
+          correo: '', usuario: '', password: '', confirmar: '',
         });
-        const loginData = await loginRes.json();
-        if (loginRes.ok) {
-          login(loginData.user);
-        } else {
-          setTimeout(() => onSwitch(), 1500);
-        }
+        setTimeout(() => {
+          setSuccess('');
+          onSwitch();
+        }, 5000);
       } else {
         setError(data.message || 'Error al crear la cuenta.');
       }
