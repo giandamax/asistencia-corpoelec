@@ -329,6 +329,18 @@ function RegisterForm({ onSwitch }) {
         Completa el formulario para registrarte en el sistema.
       </p>
 
+      {/* ── Aviso para personas naturales y acceso restringido ── */}
+      <div className="flex items-start gap-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 mb-5">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 flex-shrink-0 mt-0.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <div>
+          <p className="text-amber-800 text-xs font-black uppercase tracking-wider mb-0.5">Aviso Importante</p>
+          <p className="text-amber-700 text-xs font-medium leading-relaxed">
+            Las personas naturales solo pueden registrarse para el registro de su asistencia. 
+            El ingreso al sistema está estrictamente limitado al <strong>personal autorizado</strong>.
+          </p>
+        </div>
+      </div>
+
       {error && (
         <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 mb-5 animate-fade-in">
           <AlertCircle size={18} className="flex-shrink-0" />
@@ -446,7 +458,7 @@ function RegisterForm({ onSwitch }) {
 
 // ─── Página Principal ──────────────────────────────────────────────────────
 export default function Login() {
-  const [mode, setMode] = useState('login'); // 'login' | 'register' | 'forgot'
+  const [mode, setMode] = useState('register'); // 'login' | 'register' | 'forgot'
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
